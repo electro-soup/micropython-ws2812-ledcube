@@ -4,16 +4,24 @@ import urandom
 import time
 import math
 from machine import Pin
-import neopixel
+#import neopixel
+import neoSPI
 
-# --- konfiguracja ---
-LED_PIN = 7
+
+SPI_ID = 1 # MOSI - #11 on ESP32-S3
 NUM_LEDS = 100
 BRIGHTNESS = 0.1
-FRAMES = 256  # ile kroków w cyklu tęczy
+FRAMES = 256  
 
-np = neopixel.NeoPixel(Pin(LED_PIN), NUM_LEDS)
+np = neoSPI.NeoPixel(SPI_ID, NUM_LEDS)
 
+@micropython.viper
+def viper_blank(buf, length:int): # naive version of filling all buffer with 0's
+    x :int = 0
+    wsk = ptr8(buf)
+    while x < length:
+        wsk[x] = 136
+        x = x + 1
 
 def set_pixel(i, color):
     r, g, b = color
@@ -75,7 +83,7 @@ def sparkle(duration=3, wait=0.05):
         np.write()
 
 def clear():
-    np.fill((0,0,0))
+    viper_blank(np._data, np.n*12)
     np.write()
 
 def demo():
@@ -108,15 +116,15 @@ def wheel(pos):
         return (pos * 3, 0, 255 - pos * 3)
 
 # --- precomputing: tworzymy gotową listę kolorów ---
-print("Generuję ramki tęczy...")
-rainbow_frames = []
-for j in range(FRAMES):
-    frame = []
-    for i in range(NUM_LEDS):
-        rc_index = (i * 256 // NUM_LEDS + j) & 255
-        frame.append(scale_color(wheel(rc_index)))
-    rainbow_frames.append(frame)
-print("Gotowe! Łącznie:", len(rainbow_frames), "ramek.")
+# print("Generuję ramki tęczy...")
+# rainbow_frames = []
+# for j in range(FRAMES):
+#     frame = []
+#     for i in range(NUM_LEDS):
+#         rc_index = (i * 256 // NUM_LEDS + j) & 255
+#         frame.append(scale_color(wheel(rc_index)))
+#     rainbow_frames.append(frame)
+# print("Gotowe! Łącznie:", len(rainbow_frames), "ramek.")
 
 
 def rainbow_cycle_fast_simple(wait=0.01, loops=5):
@@ -142,10 +150,10 @@ def frames_to_bytearrays(frames):
         ba_frames.append(ba)
     return ba_frames
 
-rainbow_frames_ba = frames_to_bytearrays(rainbow_frames)
+#rainbow_frames_ba = frames_to_bytearrays(rainbow_frames)
 
 def rainbow_cycle_fast_optimized(wait=0.005, loops=5, num_pixels = 100):
-            np = neopixel.NeoPixel(Pin(LED_PIN), num_pixels)
+            np = neoSPI.NeoPixel(Pin(LED_PIN), num_pixels)
         # wybieramy nazwę, która istnieje
             buf_obj = getattr(np, 'buf', None) or getattr(np, 'bytearray', None) or None
         
@@ -178,13 +186,7 @@ def snake(color, num_pixels, time_s):
         np.write()
         time.sleep(time_s)
 
-@micropython.viper
-def viper_blank(buf, length:int):
-    x :int = 0
-    wsk = ptr8(buf)
-    while x < length:
-        wsk[x] = 136
-        x = x + 1
+
         
 def snake_SPI(color, num_pixels, time_s):
     _data_len =  np.n*12

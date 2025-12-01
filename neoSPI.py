@@ -8,6 +8,7 @@
 # are likely to change each pixel more than once between refreshes.
 
 import gc
+import machine
 
 # User bytes are spread across four buffer bytes, encoded into bits 6
 # and 2 of each byte with the top bits of each nibble set and the
@@ -17,7 +18,7 @@ import gc
 
 _expanded_bits = [0x88, 0x8C, 0xC8, 0xCC]
 
-micropython@viper
+@micropython.viper
 def _expand_byte(b: int, mv):
     # Spread a byte across four bytes of a memoryview
     mv[0] = _expanded_bits[(b >> 6) & 0x3]
@@ -64,10 +65,11 @@ class NeoPixel:
     """
 
     
-    def __init__(self, spi_device, pixel_count):
+    def __init__(self, spi_device_id, pixel_count):
         self._n = pixel_count
         self._data = memoryview(bytearray(pixel_count * 12))
-        self._spi = spi_device
+        self._spi = machine.SPI(spi_device_id) # will be quicker iminit it here
+        self._spi.init(baudrate = 3200000)
         self[:] = (0,0,0)
 
     def _unpack_slice(self, s):
