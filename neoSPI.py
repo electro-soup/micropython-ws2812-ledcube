@@ -1,3 +1,5 @@
+#source file taken from: https://github.com/nickovs/ws2812-SPI
+
 # Implement the neopixel protocol on an SPI bus
 
 # The data is stored expanded into the format that will be sent
