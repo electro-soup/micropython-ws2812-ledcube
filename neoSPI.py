@@ -24,7 +24,7 @@ def _expand_byte(b: int, mv):
     mv[0] = _expanded_bits[(b >> 6) & 0x3]
     mv[1] = _expanded_bits[(b >> 4) & 0x3]
     mv[2] = _expanded_bits[(b >> 2) & 0x3]
-    mv[3] = _expanded_bits[(b) & 0x3]
+    mv[3] = _expanded_bits[(b) & 0x3] # is it needed at all? It always be 0xCC 
 
 
 def _compress_byte(mv):
@@ -159,7 +159,7 @@ class NeoPixel:
                     dd[i:i+12] = dd[0:12]
             elif isinstance(value, list) and all((isinstance(i, tuple) and len(i) == 3) for i in value):
                 for i in range(0, len(dd), 12):
-                    v0, v1, v2 = value[i//3]
+                    v0, v1, v2 = value[i//12]
                     _expand_byte(v0, dd[i+0:i +4])
                     _expand_byte(v1, dd[i+4:i +8])
                     _expand_byte(v2, dd[i+8:i+12])
