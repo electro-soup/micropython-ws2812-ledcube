@@ -9,7 +9,7 @@ import neoSPI
 
 
 SPI_ID = 1 # MOSI - #11 on ESP32-S3
-NUM_LEDS = 100
+NUM_LEDS = 1000
 BRIGHTNESS = 0.1
 FRAMES = 256  
 
@@ -25,7 +25,7 @@ def viper_blank(buf, length:int): # naive version of filling all buffer with 0's
 
 def set_pixel(i, color):
     r, g, b = color
-    np[i] = (int(r * BRIGHTNESS), int(g * BRIGHTNESS), int(b * BRIGHTNESS))
+    np[i] = (int(g * BRIGHTNESS), int(r * BRIGHTNESS), int(b * BRIGHTNESS))
 
 def wheel(pos):
     """Zwraca kolor tęczy od 0-255"""
@@ -115,60 +115,9 @@ def wheel(pos):
         pos -= 170
         return (pos * 3, 0, 255 - pos * 3)
 
-# --- precomputing: tworzymy gotową listę kolorów ---
-# print("Generuję ramki tęczy...")
-# rainbow_frames = []
-# for j in range(FRAMES):
-#     frame = []
-#     for i in range(NUM_LEDS):
-#         rc_index = (i * 256 // NUM_LEDS + j) & 255
-#         frame.append(scale_color(wheel(rc_index)))
-#     rainbow_frames.append(frame)
-# print("Gotowe! Łącznie:", len(rainbow_frames), "ramek.")
 
-
-def rainbow_cycle_fast_simple(wait=0.01, loops=5):
-    for _ in range(loops):
-        for frame in rainbow_frames:
-            # przypisz piksele po kolei (bez np[:] = frame)
-            for i, color in enumerate(frame):
-                np[i] = color
-            np.write()
-            time.sleep(wait)
-
-# przygotowanie: skonwertujemy każdą ramkę do surowych bajtów RGB
-def frames_to_bytearrays(frames):
-    ba_frames = []
-    for frame in frames:
-        ba = bytearray(NUM_LEDS * 3)
-        # NeoPixel w MicroPythonie zwykle używa RGB w kolejności (r,g,b)
-        for i, (r, g, b) in enumerate(frame):
-            j = i * 3
-            ba[j]   = r
-            ba[j+1] = g
-            ba[j+2] = b
-        ba_frames.append(ba)
-    return ba_frames
-
-#rainbow_frames_ba = frames_to_bytearrays(rainbow_frames)
-
-def rainbow_cycle_fast_optimized(wait=0.005, loops=5, num_pixels = 100):
-            np = neoSPI.NeoPixel(Pin(LED_PIN), num_pixels)
-        # wybieramy nazwę, która istnieje
-            buf_obj = getattr(np, 'buf', None) or getattr(np, 'bytearray', None) or None
-        
-
-            for _ in range(loops):
-                for ba in rainbow_frames_ba:
-                    # upewnij się że rozmiary matchują
-                    time.sleep(wait)
-                    buf_obj[:] = ba
-                    np.write() #it looks like starting some process, but working in background
-                    
-                    
-            return
 def random_color():
-    return (urandom.randrange(0,100,10), urandom.randrange(0,100,10),urandom.randrange(0,100,10))
+    return (urandom.randrange(0,10,1), urandom.randrange(0,10,1),urandom.randrange(0,10,1))
 
 def snake(color, num_pixels, time_s):
     np = neopixel.NeoPixel(Pin(LED_PIN), num_pixels)
@@ -190,8 +139,6 @@ def snake(color, num_pixels, time_s):
         
 def snake_SPI(color, num_pixels, time_s):
     _data_len =  np.n*12
-    
-    
     for i in range(num_pixels - 20): #time consuming, needs opts if largers arrays
         
         start = time.ticks_ms()
@@ -221,7 +168,7 @@ def snake_SPI(color, num_pixels, time_s):
         
 def wave_horizont_1(time_s, colour):
     for i in range(12):
-           np.fill((0,0,0))
+           clear()
            color = random_color()
            for y in range(42 +i*14, 42+14 +i*14,1):
                np[y] = color
@@ -231,16 +178,16 @@ def wave_horizont_1(time_s, colour):
 
 def wave_horizont_2(time_s, colour):
     for i in range(11, -1, -1):
-           np.fill((0,0,0))
+           clear()
            color = random_color()
            for y in range(42 +i*14, 42+14 +i*14,1):
                np[y] = color
            np.write()
            time.sleep(time_s)
            
-def wave_vertical(time_s, colour):
-    for i in range(42, 42+14,1):
-           np.fill((0,0,0))
+def wave_vertical(time_s, colour, n_leds):
+    for i in range(n_leds):
+           clear()
            color = random_color()
            for y in range(11, -1, -1):
                np[y*14+i] = color
@@ -254,7 +201,105 @@ def sparkle_v2(duration=3, wait=0.05):
         np[i] = (100, 100, 100)
         np.write()
         time.sleep(wait)
-        np.fill((0,0,0))
+        clear()
+        
+def snakes_split(time_s, snake_length):
+    color_1 = (0,5,5)
+    color_2 = (5,5,0)
+    color_3 = (5,0,0)
+    color_4 = (0,5,0)
+    #snake_length = 10
+    for pos in range(1000):  
+        np[(500 + pos):( 500 +pos+snake_length)] = color_1
+        np[(500 - pos - snake_length): (500 - pos)] = color_2
+        if (pos + snake_length) > 10:
+             np[(500 + pos - 10):( 500 +pos+snake_length - 10)] = color_3
+             np[(500 - pos - snake_length + 10): (500 - pos + 10)] = color_4
+        if (pos + snake_length) > 25:
+             np[(500 + pos - 25):( 500 +pos+snake_length - 25)] = random_color()
+             np[(500 - pos - snake_length + 25): (500 - pos + 25)] = random_color()
         np.write()
-    
-           
+        time.sleep(time_s)
+        viper_blank(np._data, np.n*12)
+     
+
+
+#6x9x4 demo cube
+OFFSET = 24
+
+def write_3D_data(data):
+    start = OFFSET
+    line_width = 9
+    #  first strand transformation - 6 rows (or vertical columns)
+    end = start+line_width
+    print(start, end)
+    np[start:end] = data[0:line_width]
+    #now reverse order
+    start = end + 1 # 1 for empty led
+    end = start + line_width
+    print(start, end)
+    np[start:end] = data[2*line_width:line_width-1:-1]
+    #and back to normal
+
+#very naive function for filling 9x6x4 matrix
+def write_3D_data_v2(data):
+    start = OFFSET
+    end = 0
+    line_width = 9
+    #  first strand transformation - 6 rows (or vertical columns)
+    for i in range(3):
+        end = start+line_width
+        print(start, end)
+        np[start:end] = data[i*line_width:(i+1)*line_width]
+        #now reverse order
+        start = end + 1 # 1 for empty led
+        end = start + line_width
+        print(start, end)
+        np[start:end] = data[(2+i)*line_width:(line_width-1)*(i+1):-1]
+        start = end + 1
+    start = end + 3
+    #reverse part of array for second 2d slice:
+    data_temp = data[108:54:-1]
+    for i in range(3):
+        end = start+line_width
+        print(start, end)
+        np[start:end] = data_temp[i*line_width:(i+1)*line_width]
+        #now reverse order
+        start = end + 1 # 1 for empty led
+        end = start + line_width
+        print(start, end)
+        np[start:end] = data_temp[(2+i)*line_width:(line_width-1)*(i+1):-1]
+        start = end + 1
+        
+        #third slice
+    start = end + 3
+    data_temp = data[108:(108+54)] 
+    for i in range(3):
+        end = start+line_width
+        print(start, end)
+        np[start:end] = data_temp[i*line_width:(i+1)*line_width]
+        #now reverse order
+        start = end + 1 # 1 for empty led
+        end = start + line_width
+        print(start, end)
+        np[start:end] = data_temp[(2+i)*line_width:(line_width-1)*(i+1):-1]
+        start = end + 1
+    start = end + 2
+    #and the same as #2
+    data_temp = data[164:108:-1]
+    for i in range(3):
+        end = start+line_width
+        print(start, end)
+        np[start:end] = data_temp[i*line_width:(i+1)*line_width]
+        #now reverse order
+        start = end + 1 # 1 for empty led
+        end = start + line_width
+        print(start, end)
+        np[start:end] = data_temp[(2+i)*line_width:(line_width-1)*(i+1):-1]
+        start = end + 1
+
+
+
+
+
+    #and back to normal
