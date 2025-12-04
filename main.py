@@ -255,22 +255,24 @@ def write_3D_data_v2(data):
         start = end + 1 # 1 for empty led
         end = start + line_width
         print(start, end)
-        np[start:end] = data[(2+i)*line_width:(line_width-1)*(i+1):-1]
+        temp = data[(line_width)*(i+1):(2+i)*line_width]
+        np[start:end] = temp[::-1]
         start = end + 1
     start = end + 3
     #reverse part of array for second 2d slice:
-    data_temp = data[108:54:-1]
+    data_temp = data[54:108]
+    data_temp = data_temp[::-1]
     for i in range(3):
         end = start+line_width
         print(start, end)
-        np[start:end] = data_temp[i*line_width:(i+1)*line_width]
+        temp = data_temp[i*line_width:(i+1)*line_width]
+        np[start:end]= temp[::-1]
         #now reverse order
         start = end + 1 # 1 for empty led
         end = start + line_width
         print(start, end)
-        np[start:end] = data_temp[(2+i)*line_width:(line_width-1)*(i+1):-1]
+        np[start:end]= data_temp[(line_width)*(i+1):(2+i)*line_width]
         start = end + 1
-        
         #third slice
     start = end + 3
     data_temp = data[108:(108+54)] 
@@ -282,24 +284,74 @@ def write_3D_data_v2(data):
         start = end + 1 # 1 for empty led
         end = start + line_width
         print(start, end)
-        np[start:end] = data_temp[(2+i)*line_width:(line_width-1)*(i+1):-1]
+        temp = data_temp[(line_width)*(i+1):(2+i)*line_width]
+        np[start:end] = temp[::-1]
         start = end + 1
     start = end + 2
     #and the same as #2
-    data_temp = data[164:108:-1]
+    data_temp = data[164:216]
+    data_temp = data_temp[::-1]
     for i in range(3):
         end = start+line_width
         print(start, end)
-        np[start:end] = data_temp[i*line_width:(i+1)*line_width]
+        temp = data_temp[i*line_width:(i+1)*line_width]
+        np[start:end] = temp[::-1]
         #now reverse order
         start = end + 1 # 1 for empty led
         end = start + line_width
         print(start, end)
-        np[start:end] = data_temp[(2+i)*line_width:(line_width-1)*(i+1):-1]
+        temp = data_temp[(line_width)*(i+1):(2+i)*line_width]
+        np[start:end] = temp
         start = end + 1
 
 
 
 
 
+color_table = []
+color_table[0:54] = [ (i,0,0) for i in range(54)]
+color_table[54:(54+54)] = [ (i,i,0) for i in range(54)]
+color_table[108:(108+54)] = [ (0,i,0) for i in range(54)]
+color_table[164:(164+54)] = [ (0,0,i) for i in range(54)]
+
     #and back to normal
+def wall_down(color, time_s):
+    for i in range(9):
+        color_table = [(0,0,0) for _ in range(4*54)]
+        for y in range(i, len(color_table), 9):
+            color_table[y] = color
+        viper_blank(np._data, np.n*12)
+        write_3D_data_v2(color_table)
+        np.write()
+        time.sleep(time_s)
+
+def cascade_wall():
+    wall_down((0,4,4), 0.5)
+    wall_down((4,0,4), 0.3)
+    wall_down((2,4,3), 0.2)
+    wall_down((0,0,3), 0.1)
+    wall_down((3,0,0), 0.001)
+    wall_down((0,1,2), 0.001)
+    wall_down((2,1,0), 0.001)
+    wall_down((1,1,1), 0.001)
+    wall_side((0,4,4), 0.5)
+    wall_side((4,0,4), 0.3)
+    wall_side((2,4,3), 0.2)
+    wall_side((0,0,3), 0.1)
+    wall_side((3,0,0), 0.001)
+    wall_side((0,1,2), 0.001)
+    wall_side((2,1,0), 0.001)
+    wall_side((1,1,1), 0.001)
+    clear()
+
+
+def wall_side(color = (0, 4,0), time_s = 0.1):
+    for i in range(0, 216,54):
+        color_table = [(0,0,0) for _ in range(4*54)]
+        color_table[i:(i+54)] = [ color for _ in range(54)]
+        viper_blank(np._data, np.n*12)
+        write_3D_data_v2(color_table)
+        np.write()
+        time.sleep(time_s)
+
+        
