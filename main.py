@@ -227,22 +227,9 @@ def snakes_split(time_s, snake_length):
 #6x9x4 demo cube
 OFFSET = 24
 
-def write_3D_data(data):
-    start = OFFSET
-    line_width = 9
-    #  first strand transformation - 6 rows (or vertical columns)
-    end = start+line_width
-    print(start, end)
-    np[start:end] = data[0:line_width]
-    #now reverse order
-    start = end + 1 # 1 for empty led
-    end = start + line_width
-    print(start, end)
-    np[start:end] = data[2*line_width:line_width-1:-1]
-    #and back to normal
 
 #very naive function for filling 9x6x4 matrix
-def write_3D_data_v2(data):
+def write_3D_data(data):
     start = OFFSET
     end = 0
     line_width = 9
@@ -317,7 +304,7 @@ def wall_down(color, time_s):
         for y in range(i, len(color_table), 9):
             color_table[y] = color
         viper_blank(np._data, np.n*12)
-        write_3D_data_v2(color_table)
+        write_3D_data(color_table)
         np.write()
         time.sleep(time_s)
 
@@ -327,7 +314,7 @@ def wall_back_to_front(color = (0, 4,0), time_s = 0.1):
         color_table = [(0,0,0) for _ in range(4*54)]
         color_table[i:(i+54)] = [ color for _ in range(54)]
         viper_blank(np._data, np.n*12)
-        write_3D_data_v2(color_table)
+        write_3D_data(color_table)
         np.write()
         time.sleep(time_s)
 
@@ -362,7 +349,7 @@ def wall_side_to_side(color=(0,0,3), time_s = 0.1):
             print(start, end)
             color_table[start:end] = [color for _ in range(9)]
         viper_blank(np._data, np.n*12)
-        write_3D_data_v2(color_table)
+        write_3D_data(color_table)
         np.write()
         time.sleep(time_s)
 
@@ -371,7 +358,27 @@ def check_light_strain(time_s = 0.5):
         color_table = [(0,0,0) for _ in range(4*54)]
         clear()
         color_table[i] = (5,5,5)
-        write_3D_data_v2(color_table)
+        write_3D_data(color_table)
         np.write()
         time.sleep(time_s)
         print(i)
+
+
+def iterate_as_matrix(xyz_coords, color_value, data, blank = 0):
+    #data = [(0,0,0) for _ in range(4*54)]
+    X_ax = 9
+    Y_ax = 6
+    Z_ax = 4
+    x, y, z = xyz_coords
+    pos = x + y * X_ax + z * X_ax * Y_ax 
+    print(f"{pos=}")
+    data[pos] = color_value
+    if blank == 1:
+        viper_blank(np._data, np.n*12)
+    write_3D_data(data)
+    np.write()
+
+def clear_buffer(data):
+    data = [(0,0,0) for _ in range(4*54)]
+
+

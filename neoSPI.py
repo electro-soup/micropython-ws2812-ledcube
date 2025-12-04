@@ -68,7 +68,7 @@ class NeoPixel:
     def __init__(self, spi_device_id, pixel_count):
         self._n = pixel_count
         self._data = memoryview(bytearray(pixel_count * 12))
-        self._spi = machine.SPI(spi_device_id) # will be quicker iminit it here
+        self._spi = machine.SPI(spi_device_id) # will be quicker init it here
         self._spi.init(baudrate = 3200000)
         self[:] = (0,0,0)
 
