@@ -9,7 +9,7 @@ import neoSPI
 
 
 SPI_ID = 1 # MOSI - #11 on ESP32-S3
-NUM_LEDS = 1000
+NUM_LEDS = 300
 BRIGHTNESS = 0.1
 FRAMES = 256  
 
@@ -228,22 +228,23 @@ def snakes_split(time_s, snake_length):
 OFFSET = 24
 
 
+
 #very naive function for filling 9x6x4 matrix
 def write_3D_data(data):
-    start = OFFSET
+    start = 24
     end = 0
     line_width = 9
     #  first strand transformation - 6 rows (or vertical columns)
     data_temp = data[0:54]
     for i in range(0,6,2):
         end = start+line_width
-        print(i*line_width,(i+1)*line_width)
+        #print(i*line_width,(i+1)*line_width)
         np[start:end] = data_temp[i*line_width:(i+1)*line_width]
         #now reverse order
         start = end + 1 # 1 for empty led
         end = start + line_width
         temp = data_temp[(line_width)*(i+1):(2+i)*line_width]
-        print((line_width)*(i+1),(2+i)*line_width)
+        #print((line_width)*(i+1),(2+i)*line_width)
         np[start:end] = temp[::-1]
         start = end + 1
     start = end + 3
@@ -283,7 +284,7 @@ def write_3D_data(data):
         start = end + 1 # 1 for empty led
         end = start + line_width
         temp = data_temp[(line_width)*(i+1):(2+i)*line_width]
-        print(len(data_temp), len(temp), start, end)
+        #print(len(data_temp), len(temp), start, end)
         np[start:end] = temp
         start = end + 1
 
@@ -298,22 +299,30 @@ color_table[108:(108+54)] = [ (0,i,0) for i in range(54)]
 color_table[164:(164+54)] = [ (0,0,i) for i in range(54)]
 
     #and back to normal
-def wall_down(color, time_s):
+def wall_down(color, time_s, blank = 1):
     for i in range(9):
-        color_table = [(0,0,0) for _ in range(4*54)]
+        if i == 0:
+            color_table = [(0,0,0) for _ in range(4*54)]
+        if blank:
+            color_table = [(0,0,0) for _ in range(4*54)]
         for y in range(i, len(color_table), 9):
             color_table[y] = color
-        viper_blank(np._data, np.n*12)
+        if blank:     
+            viper_blank(np._data, np.n*12)
         write_3D_data(color_table)
         np.write()
         time.sleep(time_s)
 
 
-def wall_back_to_front(color = (0, 4,0), time_s = 0.1):
+def wall_back_to_front(color = (0, 4,0), time_s = 0.1, blank = 1):
     for i in range(0, 216,54):
-        color_table = [(0,0,0) for _ in range(4*54)]
+        if i == 0:
+            color_table = [(0,0,0) for _ in range(4*54)]
+        if blank:
+            color_table = [(0,0,0) for _ in range(4*54)]
         color_table[i:(i+54)] = [ color for _ in range(54)]
-        viper_blank(np._data, np.n*12)
+        if blank:
+            viper_blank(np._data, np.n*12)
         write_3D_data(color_table)
         np.write()
         time.sleep(time_s)
@@ -321,9 +330,9 @@ def wall_back_to_front(color = (0, 4,0), time_s = 0.1):
         
 
 def cascade_wall():
-    wall_down((0,4,4), 0.5)
-    wall_down((4,0,4), 0.3)
-    wall_down((2,4,3), 0.2)
+    wall_down((0,4,4), 0.5,0)
+    wall_down((4,0,4), 0.3,0)
+    wall_down((2,4,3), 0.2,0)
     wall_down((0,0,3), 0.1)
     wall_down((3,0,0), 0.001)
     wall_down((0,1,2), 0.001)
@@ -340,28 +349,41 @@ def cascade_wall():
     clear()
 
 
-def wall_side_to_side(color=(0,0,3), time_s = 0.1):
+def wall_side_to_side(color=(0,0,3), time_s = 0.1, blank = 1):
     for x in range(6):
-        color_table = [(0,0,0) for _ in range(4*54)]
+        if x == 0:
+            color_table = [(0,0,0) for _ in range(4*54)]
+        if blank:
+            color_table = [(0,0,0) for _ in range(4*54)]
         for y in range(4):
             start = (x*9)+y*54
             end = (x+1)*9+y*54
             print(start, end)
             color_table[start:end] = [color for _ in range(9)]
-        viper_blank(np._data, np.n*12)
+        if blank:
+            viper_blank(np._data, np.n*12)
         write_3D_data(color_table)
         np.write()
         time.sleep(time_s)
 
-def check_light_strain(time_s = 0.5):
+@micropython.viper
+def check_light_strain(time_s = 0.5, additional_lights = 0):
+    color_1 = random_color()
+    color_2 = random_color()
+    color_3 = random_color()
     for i in range(216):
         color_table = [(0,0,0) for _ in range(4*54)]
-        clear()
+       
         color_table[i] = (5,5,5)
+        if additional_lights:
+            color_table[i+20] = color_1
+            color_table[i+40] = color_2
+            color_table[i+60] = color_3
         write_3D_data(color_table)
         np.write()
         time.sleep(time_s)
         print(i)
+    clear()
 
 
 def iterate_as_matrix(xyz_coords, color_value, data, blank = 0):
@@ -371,14 +393,64 @@ def iterate_as_matrix(xyz_coords, color_value, data, blank = 0):
     Z_ax = 4
     x, y, z = xyz_coords
     pos = x + y * X_ax + z * X_ax * Y_ax 
-    print(f"{pos=}")
     data[pos] = color_value
     if blank == 1:
         viper_blank(np._data, np.n*12)
-    write_3D_data(data)
-    np.write()
+    
 
 def clear_buffer(data):
     data = [(0,0,0) for _ in range(4*54)]
 
 
+def demo_3D():
+    color_table = [(0,0,0) for _ in range(4*54)]
+    for x in range(8,-1,-1):
+       for y in range(5,-1, -1):
+           for z in range(3,-1, -1):
+            iterate_as_matrix((x,y,z), (x*y+3, y*y*4+2, y*z*10), color_table)
+            write_3D_data(color_table)
+            np.write()
+
+def last_demo():
+    #while True:
+        color = random_color()
+        wall_down(color, 0.05,0)
+        color = random_color()
+        wall_side_to_side(color, 0.05,0)
+        color = random_color()
+        wall_back_to_front(color, 0.05,0)
+        color = random_color()
+        wall_down(color, 0.05,1)
+        color = random_color()
+        wall_side_to_side(color, 0.05,1)
+        color = random_color()
+        wall_back_to_front(color, 0.05,1)
+        color = random_color()
+        demo_3D()
+        clear()
+
+
+def demo_viper_fill():
+    while True:
+        np.fill(0,1,1)
+        np.write()
+        np.fill(1,0,1)
+        np.write()
+        np.fill(1,0,0)
+        np.write()
+        np.fill(0,1,0)
+        np.write()
+        np.fill(0,0,1)
+        np.write()
+    
+
+
+class MeasureTime:
+    def __init__(self, title ):
+        self.title = title
+    def __enter__( self ):
+        self.t0 = time.ticks_us()
+        return self
+    def __exit__( self, exc_type, exc_val, exc_traceback ):
+        self.time_usec = time.ticks_diff( time.ticks_us(), self.t0 )
+        print(f"\tMeasureTime {self.title} {self.time_usec} usec" )
