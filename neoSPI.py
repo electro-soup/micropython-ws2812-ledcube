@@ -17,7 +17,8 @@ import machine
 # 0b00011011 -> 0b10001000 0b10001100 0b11001000 0b11001100
 
 _expanded_bits = [0x88, 0x8C, 0xC8, 0xCC]
-
+import array
+_expanded_bits_viper = array.array("B", (0x88,0x8C, 0xC8, 0xCC))
 @micropython.viper
 def _expand_byte(b: int, mv):
     # Spread a byte across four bytes of a memoryview
@@ -25,6 +26,15 @@ def _expand_byte(b: int, mv):
     mv[1] = _expanded_bits[(b >> 4) & 0x3]
     mv[2] = _expanded_bits[(b >> 2) & 0x3]
     mv[3] = _expanded_bits[(b) & 0x3] # is it needed at all? It always be 0xCC 
+
+
+@micropython.viper
+def _expand_byte_viper(b: int, mv: ptr8, pos:int, ptr_bits:ptr8):
+    # Spread a byte across four bytes of a memoryview
+    mv[pos] = ptr_bits[(b >> 6) & 0x3]
+    mv[pos + 1] = ptr_bits[(b >> 4) & 0x3]
+    mv[pos + 2] = ptr_bits[(b >> 2) & 0x3]
+    mv[pos + 3] = ptr_bits[(b) & 0x3] # is it needed at all? It always be 0xCC 
 
 
 def _compress_byte(mv):
@@ -181,6 +191,25 @@ class NeoPixel:
         del head, tail
         gc.collect()
 
+    @micropython.viper
+    def viper_set_pixel(self, pos: int, r: int, g: int, b: int):
+        dd = ptr8(self._data)
+        bits = ptr8(_expanded_bits_viper)
+        pos = pos * 12 
+        _expand_byte_viper(g, dd, pos, bits)
+        _expand_byte_viper(r, dd, pos+4, bits)
+        _expand_byte_viper(b, dd, pos+8, bits)
+    
+    @micropython.viper
+    def fill(self, r: int, g: int, b: int):
+        n = int(self.n) # casting is enough to get rid of viper errors
+        x = 0
+        while x < n:
+            self.viper_set_pixel(x, r,g,b)
+            x = x + 1 
+
+
     @property
     def n(self):
         return self._n
+
