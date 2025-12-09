@@ -207,7 +207,27 @@ class NeoPixel:
         while x < n:
             self.viper_set_pixel(x, r,g,b)
             x = x + 1 
+    
+    # @micropython.viper
+    # def fill_slice(self, start, stop, data):
+    #     #temp = memoryview(data[start*3:stop*3])
+    #     n = int(3 *(stop - start))
+    #     x= 0
+    #     while x < n:
+    #         r = temp[x]
+    #         g = temp[x+1]
+    #         b = temp[x+2]
+    #         self.viper_set_pixel(x, r, g, b)
+    #         x = x + 3 #rgb values
 
+    @micropython.viper
+    def viper_blank(self): # naive version of filling all buffer with 0's
+        x :int = 0
+        wsk = ptr8(self._data)
+        length = int(self.n)*12
+        while x < length:
+            wsk[x] = 136 #136 in term of this SPI-WS translation
+            x = x + 1
 
     @property
     def n(self):

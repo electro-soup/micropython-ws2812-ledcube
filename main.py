@@ -15,13 +15,7 @@ FRAMES = 256
 
 np = neoSPI.NeoPixel(SPI_ID, NUM_LEDS)
 
-@micropython.viper
-def viper_blank(buf, length:int): # naive version of filling all buffer with 0's
-    x :int = 0
-    wsk = ptr8(buf)
-    while x < length:
-        wsk[x] = 136
-        x = x + 1
+
 
 def set_pixel(i, color):
     r, g, b = color
@@ -83,7 +77,7 @@ def sparkle(duration=3, wait=0.05):
         np.write()
 
 def clear():
-    viper_blank(np._data, np.n*12)
+    np.viper_blank()
     np.write()
 
 def demo():
@@ -145,7 +139,7 @@ def snake_SPI(color, num_pixels, time_s):
         #np[:num_pixels] = (0,0,0)
         #for j in range(num_pixels*12):
         #    np._data[j] = 136
-        viper_blank(np._data, _data_len)
+        np.viper_blank()
         np[i]=color
         np[i + 20] = color
         
@@ -220,7 +214,7 @@ def snakes_split(time_s, snake_length):
              np[(500 - pos - snake_length + 25): (500 - pos + 25)] = random_color()
         np.write()
         time.sleep(time_s)
-        viper_blank(np._data, np.n*12)
+        np.viper_blank()
      
 
 
@@ -308,7 +302,7 @@ def wall_down(color, time_s, blank = 1):
         for y in range(i, len(color_table), 9):
             color_table[y] = color
         if blank:     
-            viper_blank(np._data, np.n*12)
+            np.viper_blank()
         write_3D_data(color_table)
         np.write()
         time.sleep(time_s)
@@ -322,7 +316,7 @@ def wall_back_to_front(color = (0, 4,0), time_s = 0.1, blank = 1):
             color_table = [(0,0,0) for _ in range(4*54)]
         color_table[i:(i+54)] = [ color for _ in range(54)]
         if blank:
-            viper_blank(np._data, np.n*12)
+            np.viper_blank()
         write_3D_data(color_table)
         np.write()
         time.sleep(time_s)
@@ -361,7 +355,7 @@ def wall_side_to_side(color=(0,0,3), time_s = 0.1, blank = 1):
             print(start, end)
             color_table[start:end] = [color for _ in range(9)]
         if blank:
-            viper_blank(np._data, np.n*12)
+            np.viper_blank()
         write_3D_data(color_table)
         np.write()
         time.sleep(time_s)
@@ -386,7 +380,7 @@ def check_light_strain(time_s = 0.5, additional_lights = 0):
     clear()
 
 
-def iterate_as_matrix(xyz_coords, color_value, data, blank = 0):
+def iterate_as_matrix(xyz_coords, color_value, data:memoryview, blank = 0):
     #data = [(0,0,0) for _ in range(4*54)]
     X_ax = 9
     Y_ax = 6
@@ -395,7 +389,7 @@ def iterate_as_matrix(xyz_coords, color_value, data, blank = 0):
     pos = x + y * X_ax + z * X_ax * Y_ax 
     data[pos] = color_value
     if blank == 1:
-        viper_blank(np._data, np.n*12)
+        np.viper_blank()
     
 
 def clear_buffer(data):
@@ -410,6 +404,16 @@ def demo_3D():
             iterate_as_matrix((x,y,z), (x*y+3, y*y*4+2, y*z*10), color_table)
             write_3D_data(color_table)
             np.write()
+
+import array
+def demo_3D_v2():
+    data = array.array('B', [i for i in range(4*54*3)])
+    dd = memoryview(data)
+    for x in range(8,-1,-1):
+       for y in range(5,-1, -1):
+           for z in range(3,-1, -1):
+            iterate_as_matrix(x,y,z, (x*y+3, y*y*4+2, y*z*10), dd)
+        
 
 def last_demo():
     #while True:
@@ -443,6 +447,67 @@ def demo_viper_fill():
         np.fill(0,0,1)
         np.write()
     
+
+
+#very naive function for filling 9x6x4 matrix
+#memoryview version
+
+def write_2D_slice_mv(start, data:memoryview):
+    line_width = 9
+    for i in range(0,6,2):
+        end = start+line_width
+        for rgb in range(start, end):
+            data_it = (rgb - start) *3
+            print(rgb)
+            np.viper_set_pixel(rgb, data[data_it], data[data_it+1], data[data_it+2]) 
+                    #now reverse order
+        start = end + 1 # 1 for empty led
+        end = start + line_width
+        for rgb in range(end, start, -1):
+            data_it = (rgb - start) *3
+            print(rgb)
+            np.viper_set_pixel(rgb, data[data_it], data[data_it+1], data[data_it+2]) 
+        start = end + 1
+    return start
+
+def write_3D_data_mv(data):
+    start = 24
+    end = 0
+    line_width = 9
+    #  first strand transformation - 6 rows (or vertical columns)
+    data_temp = memoryview(data[0:54*3])
+    start = write_2D_slice_mv(start, data_temp)
+    start = end + 3
+    #reverse part of array for second 2d slice:
+    data_temp = memoryview(data[54*3:108*3])
+    #data_temp = data_temp[::-1]
+    start = write_2D_slice_mv(start, data_temp)
+    start = end + 3
+    data_temp = data[108:162] 
+    for i in range(0,6,2):
+        end = start+line_width
+        np[start:end] = data_temp[i*line_width:(i+1)*line_width]
+        #now reverse order
+        start = end + 1 # 1 for empty led
+        end = start + line_width
+        temp = data_temp[(line_width)*(i+1):(2+i)*line_width]
+        np[start:end] = temp[::-1]
+        start = end + 1
+    start = end + 2
+    #and the same as #2
+    data_temp = data[162:216]
+    data_temp = data_temp[::-1]
+    for i in range(0,6,2):
+        end = start+line_width
+        temp = data_temp[i*line_width:(i+1)*line_width]
+        np[start:end] = temp[::-1]
+        #now reverse order
+        start = end + 1 # 1 for empty led
+        end = start + line_width
+        temp = data_temp[(line_width)*(i+1):(2+i)*line_width]
+        #print(len(data_temp), len(temp), start, end)
+        np[start:end] = temp
+        start = end + 1
 
 
 class MeasureTime:
