@@ -518,8 +518,8 @@ def write_2D_slice_mv(start, data:memoryview):
     #print(f'{start=}')
     return start
 
-@micropython.viper
-def write_2D_slice_mv_2(start:int, data:ptr8):
+
+def write_2D_slice_mv_2(start:int, data:memoryview):
     line_width = 9
     data_it = len(data) - 3
     #print(f'entry {start=}')
@@ -543,14 +543,12 @@ def write_2D_slice_mv_2(start:int, data:ptr8):
 def write_3D_data_mv(data:memoryview):
     start = 24
     end = 0
-    line_width = 9
     #  first strand transformation - 6 rows (or vertical columns)
     data_temp = memoryview(data[0:162])
     end = write_2D_slice_mv(start, data_temp)
     start = end + 2
     #reverse part of array for second 2d slice:
     data_temp = memoryview(data[162:324])
-    #data_temp = data_temp[::-1]
     #second slice 
     end = write_2D_slice_mv_2(start, data_temp) #2ms
     start = end + 2
@@ -564,75 +562,8 @@ def write_3D_data_mv(data:memoryview):
     #data_temp = data_temp[::-1]
     end = write_2D_slice_mv_2(start, data_temp)
 
-@micropython.viper
-def write_3D_data_viper(data_mv):
-    data = memoryview(data_mv)
-    start = 24
-    end = 0
-    line_width = 9
-    #  first strand transformation - 6 rows (or vertical columns)
-    data_temp = memoryview(data[0:162])
-    end = write_2D_slice_viper(start, ptr8(data_temp))
-    start = end + 2
-    #reverse part of array for second 2d slice:
-    data_temp = memoryview(data[162:324])
-    #data_temp = data_temp[::-1]
-    #second slice 
-    end = write_2D_slice_viper_2(start, data_temp) #2ms
-    start = end + 2
-    # 3th slice
-    data_temp = memoryview(data[324:486])
-    end = write_2D_slice_viper(start, data_temp)
-    start = end + 1
-    #and the same as #2
-    # 4th slice
-    data_temp = memoryview(data[486:648])
-    #data_temp = data_temp[::-1]
-    end = write_2D_slice_viper_2(start, data_temp)
 
-@micropython.viper
-def write_2D_slice_viper(start:int, data:ptr8)->int:
-    line_width = 9
-    data_it = 0
-    #print(f'entry {start=}')
-    for i in range(0,6,2):
-        end = start+line_width
-        for rgb in range(start, end):
-            #print(rgb, ' 1 strand', data_it)
-            np.viper_set_pixel(rgb, data[data_it], data[data_it+1], data[data_it+2]) 
-            data_it +=3
-                    #now reverse order
-        start = end + 1 # 1 for empty led
-        end = start + line_width
-        for rgb in range(end-1, start-1, -1):
-            #print(rgb, '2 strand', data_it)
-            np.viper_set_pixel(rgb, data[data_it], data[data_it+1], data[data_it+2])
-            data_it +=3 
-        start = end + 1
-    #print(f'{start=}')
-    return start
 
-@micropython.viper
-def write_2D_slice_viper_2(start:int, data:ptr8, length:int)->int:
-    line_width = 9
-    data_it = length - 3
-    #print(f'entry {start=}')
-    for i in range(0,6,2):
-        end = start+line_width
-        for rgb in range(end-1, start-1, -1):
-            #print(rgb, ' 1 strand', data_it)
-            np.viper_set_pixel(rgb, data[data_it], data[data_it+1], data[data_it+2]) 
-            data_it -=3
-                    #now reverse order
-        start = end + 1 # 1 for empty led
-        end = start + line_width
-        for rgb in range(start, end):
-            #print(rgb, '2 strand', data_it)
-            np.viper_set_pixel(rgb, data[data_it], data[data_it+1], data[data_it+2])
-            data_it -=3 
-        start = end + 1
-    #print(f'{start=}')
-    return start
 
 class MeasureTime:
     def __init__(self, title ):
