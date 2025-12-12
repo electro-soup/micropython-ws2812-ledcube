@@ -321,7 +321,11 @@ def wall_back_to_front(color = (0, 4,0), time_s = 0.1, blank = 1):
         np.write()
         time.sleep(time_s)
 
-        
+def test_iterate_mv(point):
+        data = array.array('B', [0 for i in range(4*54*3)])
+        iterate_as_matrix_mv(point, (5,5,5), data)
+        write_3D_data_mv(data)
+        np.write()
 
 def cascade_wall():
     wall_down((0,4,4), 0.5,0)
@@ -406,17 +410,19 @@ def iterate_as_matrix(xyz_coords, color_value, data:memoryview, blank = 0):
     if blank == 1:
         np.viper_blank()
 
-def iterate_as_matrix_mv(xyz_coords, color_value, data:memoryview, blank = 0):
+#it need to be faster
+@micropython.viper
+def iterate_as_matrix_mv(x:int, y:int, z:int, r:int,g:int,b:int, data:ptr8, blank:int):
     #data = [(0,0,0) for _ in range(4*54)]
+    data_pos: int = 0
     X_ax = 9
     Y_ax = 6
     Z_ax = 4
-    x, y, z = xyz_coords
     pos = x + y * X_ax + z * X_ax * Y_ax
-    r, g, b = color_value 
-    data[pos] = r
-    data[pos+1] = g
-    data[pos+2] = b
+    data_pos = int(pos) * 3
+    data[data_pos] = r
+    data[data_pos+1] = g
+    data[data_pos+2] = b
     if blank == 1:
         np.viper_blank()
     
@@ -435,14 +441,22 @@ def demo_3D():
             np.write()
 
 import array
+
 def demo_3D_mv():
     data = array.array('B', [0 for i in range(4*54*3)])
     dd = memoryview(data)
     for x in range(8,-1,-1):
        for y in range(5,-1, -1):
            for z in range(3,-1, -1):
-            iterate_as_matrix_mv((x,y,z), (x*y+3, y*y*4+2, y*z*10), data)
-            write_3D_data_mv(data)
+                iterate_as_matrix_mv(x,y,z, x*y+3, y*y*4+2, y*z*10, dd,0) #50us
+                with MeasureTime('write_3D_data') as iterate:
+                    write_3D_data_mv(dd)
+                np.write()
+    for x in range(8,-1,-1):
+       for y in range(5,-1, -1):
+           for z in range(3,-1, -1):
+            iterate_as_matrix_mv(x,y,z, 0, 0 ,0, dd,0)
+            write_3D_data_mv(dd)
             np.write()
         
 
@@ -504,6 +518,7 @@ def write_2D_slice_mv(start, data:memoryview):
     #print(f'{start=}')
     return start
 
+
 def write_2D_slice_mv_2(start, data:memoryview):
     line_width = 9
     data_it = len(data) - 3
@@ -525,27 +540,27 @@ def write_2D_slice_mv_2(start, data:memoryview):
     #print(f'{start=}')
     return start
 
-def write_3D_data_mv(data):
+def write_3D_data_mv(data:memoryview):
     start = 24
     end = 0
     line_width = 9
     #  first strand transformation - 6 rows (or vertical columns)
-    data_temp = memoryview(data[0:54*3])
+    data_temp = memoryview(data[0:162])
     end = write_2D_slice_mv(start, data_temp)
     start = end + 2
     #reverse part of array for second 2d slice:
-    data_temp = memoryview(data[54*3:108*3])
+    data_temp = memoryview(data[162:324])
     #data_temp = data_temp[::-1]
     #second slice 
-    end = write_2D_slice_mv_2(start, data_temp)
+    end = write_2D_slice_mv_2(start, data_temp) #2ms
     start = end + 2
     # 3th slice
-    data_temp = memoryview(data[108*3:162*3])
+    data_temp = memoryview(data[324:486])
     end = write_2D_slice_mv(start, data_temp)
     start = end + 1
     #and the same as #2
     # 4th slice
-    data_temp = memoryview(data[162*3:216*3])
+    data_temp = memoryview(data[486:648])
     #data_temp = data_temp[::-1]
     end = write_2D_slice_mv_2(start, data_temp)
 
