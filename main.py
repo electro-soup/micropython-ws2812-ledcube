@@ -376,7 +376,22 @@ def check_light_strain(time_s = 0.5, additional_lights = 0):
         write_3D_data(color_table)
         np.write()
         time.sleep(time_s)
-        print(i)
+        #print(i)
+    clear()
+
+@micropython.viper
+def check_light_strain_mv(time_s = 0.5, additional_lights = 0):
+  
+    data = array.array('B', [0 for i in range(4*54*3)])
+    for i in range(216):
+        data = array.array('B', [0 for i in range(4*54*3)])
+        data[3*i] = i
+        data[3*i+1] = i+1
+        data[3*i+2] = 3*i+2
+        write_3D_data_mv(data)
+        np.write()
+        time.sleep(time_s)
+        #print(i)
     clear()
 
 
@@ -388,6 +403,20 @@ def iterate_as_matrix(xyz_coords, color_value, data:memoryview, blank = 0):
     x, y, z = xyz_coords
     pos = x + y * X_ax + z * X_ax * Y_ax 
     data[pos] = color_value
+    if blank == 1:
+        np.viper_blank()
+
+def iterate_as_matrix_mv(xyz_coords, color_value, data:memoryview, blank = 0):
+    #data = [(0,0,0) for _ in range(4*54)]
+    X_ax = 9
+    Y_ax = 6
+    Z_ax = 4
+    x, y, z = xyz_coords
+    pos = x + y * X_ax + z * X_ax * Y_ax
+    r, g, b = color_value 
+    data[pos] = r
+    data[pos+1] = g
+    data[pos+2] = b
     if blank == 1:
         np.viper_blank()
     
@@ -406,13 +435,15 @@ def demo_3D():
             np.write()
 
 import array
-def demo_3D_v2():
-    data = array.array('B', [i for i in range(4*54*3)])
+def demo_3D_mv():
+    data = array.array('B', [0 for i in range(4*54*3)])
     dd = memoryview(data)
     for x in range(8,-1,-1):
        for y in range(5,-1, -1):
            for z in range(3,-1, -1):
-            iterate_as_matrix(x,y,z, (x*y+3, y*y*4+2, y*z*10), dd)
+            iterate_as_matrix_mv((x,y,z), (x*y+3, y*y*4+2, y*z*10), data)
+            write_3D_data_mv(data)
+            np.write()
         
 
 def last_demo():
@@ -454,20 +485,44 @@ def demo_viper_fill():
 
 def write_2D_slice_mv(start, data:memoryview):
     line_width = 9
+    data_it = 0
+    #print(f'entry {start=}')
     for i in range(0,6,2):
         end = start+line_width
         for rgb in range(start, end):
-            data_it = (rgb - start) *3
-            print(rgb)
+            #print(rgb, ' 1 strand', data_it)
             np.viper_set_pixel(rgb, data[data_it], data[data_it+1], data[data_it+2]) 
+            data_it +=3
                     #now reverse order
         start = end + 1 # 1 for empty led
         end = start + line_width
-        for rgb in range(end, start, -1):
-            data_it = (rgb - start) *3
-            print(rgb)
-            np.viper_set_pixel(rgb, data[data_it], data[data_it+1], data[data_it+2]) 
+        for rgb in range(end-1, start-1, -1):
+            #print(rgb, '2 strand', data_it)
+            np.viper_set_pixel(rgb, data[data_it], data[data_it+1], data[data_it+2])
+            data_it +=3 
         start = end + 1
+    #print(f'{start=}')
+    return start
+
+def write_2D_slice_mv_2(start, data:memoryview):
+    line_width = 9
+    data_it = len(data) - 3
+    #print(f'entry {start=}')
+    for i in range(0,6,2):
+        end = start+line_width
+        for rgb in range(end-1, start-1, -1):
+            #print(rgb, ' 1 strand', data_it)
+            np.viper_set_pixel(rgb, data[data_it], data[data_it+1], data[data_it+2]) 
+            data_it -=3
+                    #now reverse order
+        start = end + 1 # 1 for empty led
+        end = start + line_width
+        for rgb in range(start, end):
+            #print(rgb, '2 strand', data_it)
+            np.viper_set_pixel(rgb, data[data_it], data[data_it+1], data[data_it+2])
+            data_it -=3 
+        start = end + 1
+    #print(f'{start=}')
     return start
 
 def write_3D_data_mv(data):
@@ -476,38 +531,23 @@ def write_3D_data_mv(data):
     line_width = 9
     #  first strand transformation - 6 rows (or vertical columns)
     data_temp = memoryview(data[0:54*3])
-    start = write_2D_slice_mv(start, data_temp)
-    start = end + 3
+    end = write_2D_slice_mv(start, data_temp)
+    start = end + 2
     #reverse part of array for second 2d slice:
     data_temp = memoryview(data[54*3:108*3])
     #data_temp = data_temp[::-1]
-    start = write_2D_slice_mv(start, data_temp)
-    start = end + 3
-    data_temp = data[108:162] 
-    for i in range(0,6,2):
-        end = start+line_width
-        np[start:end] = data_temp[i*line_width:(i+1)*line_width]
-        #now reverse order
-        start = end + 1 # 1 for empty led
-        end = start + line_width
-        temp = data_temp[(line_width)*(i+1):(2+i)*line_width]
-        np[start:end] = temp[::-1]
-        start = end + 1
+    #second slice 
+    end = write_2D_slice_mv_2(start, data_temp)
     start = end + 2
+    # 3th slice
+    data_temp = memoryview(data[108*3:162*3])
+    end = write_2D_slice_mv(start, data_temp)
+    start = end + 1
     #and the same as #2
-    data_temp = data[162:216]
-    data_temp = data_temp[::-1]
-    for i in range(0,6,2):
-        end = start+line_width
-        temp = data_temp[i*line_width:(i+1)*line_width]
-        np[start:end] = temp[::-1]
-        #now reverse order
-        start = end + 1 # 1 for empty led
-        end = start + line_width
-        temp = data_temp[(line_width)*(i+1):(2+i)*line_width]
-        #print(len(data_temp), len(temp), start, end)
-        np[start:end] = temp
-        start = end + 1
+    # 4th slice
+    data_temp = memoryview(data[162*3:216*3])
+    #data_temp = data_temp[::-1]
+    end = write_2D_slice_mv_2(start, data_temp)
 
 
 class MeasureTime:
@@ -519,3 +559,5 @@ class MeasureTime:
     def __exit__( self, exc_type, exc_val, exc_traceback ):
         self.time_usec = time.ticks_diff( time.ticks_us(), self.t0 )
         print(f"\tMeasureTime {self.title} {self.time_usec} usec" )
+
+#bytearray version
