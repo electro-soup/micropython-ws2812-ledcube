@@ -443,12 +443,12 @@ def demo_3D_mv():
                 iterate_as_matrix_mv(x,y,z, x*y+3, y*y*4+2, y*z*10, dd,0) #50us
                 write_3D_data_mv(dd)
                 np.write()
-    for x in range(8,-1,-1):
-       for y in range(5,-1, -1):
-           for z in range(3,-1, -1):
-            iterate_as_matrix_mv(x,y,z, 0, 0 ,0, dd,0)
-            write_3D_data_mv(dd)
-            np.write()
+    # for x in range(8,-1,-1):
+    #    for y in range(5,-1, -1):
+    #        for z in range(3,-1, -1):
+    #         iterate_as_matrix_mv(x,y,z, 0, 0 ,0, dd,0)
+    #         write_3D_data_mv(dd)
+    #         np.write()
         
 
 def last_demo():
@@ -582,18 +582,24 @@ def iterate_as_matrix_viper(x:int, y:int, z:int, r:int,g:int,b:int, data:ptr8, n
     diode_index = np_data[pos]
     np.viper_set_pixel(diode_index, data[data_pos], data[data_pos+1], data[data_pos+2]) 
 
+@micropython.viper
 def demo_3D_viper():
     data = array.array('B', [i for i in range(4*54*3)])
-    dd = memoryview(data)
+    dd = ptr8(data)
+    mapper = ptr8(mapper_data_to_pos)
     for x in range(8,-1,-1):
        for y in range(5,-1, -1):
            for z in range(3,-1, -1):
-                iterate_as_matrix_viper(x,y,z, x*y+3, y*y*4+2, y*z*10, dd, mapper_data_to_pos, 0) #50us
-                np.write()
+                iterate_as_matrix_viper(x,y,z, 1, 1, 1, dd, mapper, 0) #50us
+                np.write() #it increased time mostly
 
 def test_3D_viper():
     with MeasureTime('viper') as viper:
         demo_3D_viper()
     with MeasureTime('memoryview') as viper:
         demo_3D_mv()
+    with MeasureTime('default') as viper:
+        demo_3D()
 #bytearray version
+
+#iterate_as_matrix_viper(0,0,0,1,1,1,memoryview(data), memoryview(mapper_data_to_pos),0) it is allowed to pass memoryview as ptr8
