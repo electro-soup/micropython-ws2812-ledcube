@@ -307,7 +307,6 @@ def wall_down(color, time_s, blank = 1):
         np.write()
         time.sleep(time_s)
 
-
 def wall_back_to_front(color = (0, 4,0), time_s = 0.1, blank = 1):
     for i in range(0, 216,54):
         if i == 0:
@@ -321,11 +320,6 @@ def wall_back_to_front(color = (0, 4,0), time_s = 0.1, blank = 1):
         np.write()
         time.sleep(time_s)
 
-def test_iterate_mv(point):
-        data = array.array('B', [0 for i in range(4*54*3)])
-        iterate_as_matrix_mv(point, (5,5,5), data)
-        write_3D_data_mv(data)
-        np.write()
 
 def cascade_wall():
     wall_down((0,4,4), 0.5,0)
@@ -345,7 +339,6 @@ def cascade_wall():
     wall_back_to_front((2,1,0), 0.001)
     wall_back_to_front((1,1,1), 0.001)
     clear()
-
 
 def wall_side_to_side(color=(0,0,3), time_s = 0.1, blank = 1):
     for x in range(6):
@@ -371,7 +364,6 @@ def check_light_strain(time_s = 0.5, additional_lights = 0):
     color_3 = random_color()
     for i in range(216):
         color_table = [(0,0,0) for _ in range(4*54)]
-       
         color_table[i] = (5,5,5)
         if additional_lights:
             color_table[i+20] = color_1
@@ -385,7 +377,6 @@ def check_light_strain(time_s = 0.5, additional_lights = 0):
 
 @micropython.viper
 def check_light_strain_mv(time_s = 0.5, additional_lights = 0):
-  
     data = array.array('B', [0 for i in range(4*54*3)])
     for i in range(216):
         data = array.array('B', [0 for i in range(4*54*3)])
@@ -427,6 +418,7 @@ def iterate_as_matrix_mv(x:int, y:int, z:int, r:int,g:int,b:int, data:ptr8, blan
         np.viper_blank()
     
 
+
 def clear_buffer(data):
     data = [(0,0,0) for _ in range(4*54)]
 
@@ -449,8 +441,7 @@ def demo_3D_mv():
        for y in range(5,-1, -1):
            for z in range(3,-1, -1):
                 iterate_as_matrix_mv(x,y,z, x*y+3, y*y*4+2, y*z*10, dd,0) #50us
-                with MeasureTime('write_3D_data') as iterate:
-                    write_3D_data_mv(dd)
+                write_3D_data_mv(dd)
                 np.write()
     for x in range(8,-1,-1):
        for y in range(5,-1, -1):
@@ -491,8 +482,6 @@ def demo_viper_fill():
         np.write()
         np.fill(0,0,1)
         np.write()
-    
-
 
 #very naive function for filling 9x6x4 matrix
 #memoryview version
@@ -504,14 +493,14 @@ def write_2D_slice_mv(start, data:memoryview):
     for i in range(0,6,2):
         end = start+line_width
         for rgb in range(start, end):
-            #print(rgb, ' 1 strand', data_it)
+            #print(rgb)
             np.viper_set_pixel(rgb, data[data_it], data[data_it+1], data[data_it+2]) 
             data_it +=3
                     #now reverse order
         start = end + 1 # 1 for empty led
         end = start + line_width
         for rgb in range(end-1, start-1, -1):
-            #print(rgb, '2 strand', data_it)
+            #print(rgb)
             np.viper_set_pixel(rgb, data[data_it], data[data_it+1], data[data_it+2])
             data_it +=3 
         start = end + 1
@@ -526,14 +515,14 @@ def write_2D_slice_mv_2(start:int, data:memoryview):
     for i in range(0,6,2):
         end = start+line_width
         for rgb in range(end-1, start-1, -1):
-            #print(rgb, ' 1 strand', data_it)
+            #print(rgb)
             np.viper_set_pixel(rgb, data[data_it], data[data_it+1], data[data_it+2]) 
             data_it -=3
                     #now reverse order
         start = end + 1 # 1 for empty led
         end = start + line_width
         for rgb in range(start, end):
-            #print(rgb, '2 strand', data_it)
+            #print(rgb)
             np.viper_set_pixel(rgb, data[data_it], data[data_it+1], data[data_it+2])
             data_it -=3 
         start = end + 1
@@ -559,10 +548,13 @@ def write_3D_data_mv(data:memoryview):
     #and the same as #2
     # 4th slice
     data_temp = memoryview(data[486:648])
-    #data_temp = data_temp[::-1]
     end = write_2D_slice_mv_2(start, data_temp)
 
-
+def test_iterate_mv(point):
+        data = array.array('B', [0 for i in range(4*54*3)])
+        iterate_as_matrix_mv(0,0,0, 5,5,5, data,0)
+        write_3D_data_mv(data)
+        np.write()
 
 
 class MeasureTime:
@@ -575,4 +567,33 @@ class MeasureTime:
         self.time_usec = time.ticks_diff( time.ticks_us(), self.t0 )
         print(f"\tMeasureTime {self.title} {self.time_usec} usec" )
 
+mapper_data_to_pos = array.array('B', [24,25,26,27,28,29,30,31,32,42,41,40,39,38,37,36,35,34,44,45,46,47,48,49,50,51,52,62,61,60,59,58,57,56,55,54,64,65,66,67,68,69,70,71,72,82,81,80,79,78,77,76,75,74,94,93,92,91,90,89,88,87,86,96,97,98,99,100,101,102,103,104,114,113,112,111,110,109,108,107,106,116,117,118,119,120,121,122,123,124,134,133,132,131,130,129,128,127,126,136,137,138,139,140,141,142,143,144,148,149,150,151,152,153,154,155,156,166,165,164,163,162,161,160,159,158,168,169,170,171,172,173,174,175,176,186,185,184,183,182,181,180,179,178,188,189,190,191,192,193,194,195,196,206,205,204,203,202,201,200,199,198,217,216,215,214,213,212,211,210,209,219,220,221,222,223,224,225,226,227,237,236,235,234,233,232,231,230,229,239,240,241,242,243,244,245,246,247,257,256,255,254,253,252,251,250,249,259,260,261,262,263,264,265, 266, 267])
+
+@micropython.viper
+def iterate_as_matrix_viper(x:int, y:int, z:int, r:int,g:int,b:int, data:ptr8, np_data:ptr8, blank:int):
+    #first slice
+    X_ax = 9
+    Y_ax = 6
+    Z_ax = 4
+    diode_index = 0
+    OFFSET = 24 #just to remember  
+    pos = x + y * X_ax + z * X_ax * Y_ax 
+    data_pos = pos * 3   
+    diode_index = np_data[pos]
+    np.viper_set_pixel(diode_index, data[data_pos], data[data_pos+1], data[data_pos+2]) 
+
+def demo_3D_viper():
+    data = array.array('B', [i for i in range(4*54*3)])
+    dd = memoryview(data)
+    for x in range(8,-1,-1):
+       for y in range(5,-1, -1):
+           for z in range(3,-1, -1):
+                iterate_as_matrix_viper(x,y,z, x*y+3, y*y*4+2, y*z*10, dd, mapper_data_to_pos, 0) #50us
+                np.write()
+
+def test_3D_viper():
+    with MeasureTime('viper') as viper:
+        demo_3D_viper()
+    with MeasureTime('memoryview') as viper:
+        demo_3D_mv()
 #bytearray version
