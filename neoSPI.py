@@ -15,7 +15,8 @@ import machine
 # bottom bits of each nibble all clear.
 
 # 0b00011011 -> 0b10001000 0b10001100 0b11001000 0b11001100
-
+zero_bytes = 2
+end_bytes = 6 # to be actual low level >50us
 _expanded_bits = [0x88, 0x8C, 0xC8, 0xCC]
 import array
 _expanded_bits_viper = array.array("B", (0x88,0x8C, 0xC8, 0xCC))
@@ -77,10 +78,10 @@ class NeoPixel:
     
     def __init__(self, spi_device_id, pixel_count):
         self._n = pixel_count
-        self._data = memoryview(bytearray(pixel_count * 12))
+        self._data = memoryview(bytearray((pixel_count + zero_bytes + end_bytes) * 12)) #1 just for zeroes for 1->0 before sending actual data
         self._spi = machine.SPI(spi_device_id) # will be quicker init it here
         self._spi.init(baudrate = 3200000)
-        self[:] = (0,0,0)
+        #self[:] = (0,0,0)
 
     def _unpack_slice(self, s):
         start, stop, step = s.start, s.stop, s.step
@@ -195,15 +196,15 @@ class NeoPixel:
     def viper_set_pixel(self, pos: int, r: int, g: int, b: int):
         dd = ptr8(self._data)
         bits = ptr8(_expanded_bits_viper)
-        pos = pos * 12 
+        pos = (pos + int(zero_bytes))  * 12 #extra byte
         _expand_byte_viper(g, dd, pos, bits)
         _expand_byte_viper(r, dd, pos+4, bits)
         _expand_byte_viper(b, dd, pos+8, bits)
     
     @micropython.viper
     def fill(self, r: int, g: int, b: int):
-        n = int(self.n) # casting is enough to get rid of viper errors
-        x = 0
+        n = int(self.n) - int(end_bytes) # casting is enough to get rid of viper errors
+        x = int(zero_bytes)
         while x < n:
             self.viper_set_pixel(x, r,g,b)
             x = x + 1 
@@ -222,9 +223,9 @@ class NeoPixel:
 
     @micropython.viper
     def viper_blank(self): # naive version of filling all buffer with 0's
-        x :int = 0
+        x :int = int(zero_bytes) #because of the first blank byte
         wsk = ptr8(self._data)
-        length = int(self.n)*12
+        length = int(self.n - end_bytes)*12
         while x < length:
             wsk[x] = 136 #136 in term of this SPI-WS translation
             x = x + 1
