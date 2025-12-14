@@ -1,15 +1,11 @@
-
-
 import urandom
 import time
 import math
 from machine import Pin
-#import neopixel
 import neoSPI
 
-
 SPI_ID = 1 # MOSI - #11 on ESP32-S3
-NUM_LEDS = 860
+NUM_LEDS = 300
 BRIGHTNESS = 0.1
 FRAMES = 256  
 
@@ -417,11 +413,8 @@ def iterate_as_matrix_mv(x:int, y:int, z:int, r:int,g:int,b:int, data:ptr8, blan
     if blank == 1:
         np.viper_blank()
     
-
-
 def clear_buffer(data):
     data = [(0,0,0) for _ in range(4*54)]
-
 
 def demo_3D():
     color_table = [(0,0,0) for _ in range(4*54)]
@@ -485,7 +478,6 @@ def demo_viper_fill():
 
 #very naive function for filling 9x6x4 matrix
 #memoryview version
-
 def write_2D_slice_mv(start, data:memoryview):
     line_width = 9
     data_it = 0
@@ -506,8 +498,7 @@ def write_2D_slice_mv(start, data:memoryview):
         start = end + 1
     #print(f'{start=}')
     return start
-
-
+#for even slices
 def write_2D_slice_mv_2(start:int, data:memoryview):
     line_width = 9
     data_it = len(data) - 3
@@ -578,7 +569,7 @@ mapper_data_to_pos_copy = array.array('h', [24,25,26,27,28,29,30,31,32,42,41,40,
                                       267, 266, 265, 264, 263, 262, 261, 260, 259, 249, 250, 251, 252, 253, 254, 255, 256, 257, 247, 246, 245, 244, 243, 242, 241, 240, 239, 229, 230, 231, 232, 233, 234, 235, 236, 237, 227, 226, 225, 224, 223, 222, 221, 220, 219, 209, 210, 211, 212, 213, 214, 215, 216, 217])
 
 @micropython.viper
-def iterate_as_matrix_viper(x:int, y:int, z:int, r:int,g:int,b:int, np_data:ptr16, blank:int):
+def iterate_as_matrix_viper(x:int, y:int, z:int, r:int,g:int,b:int, np_data:ptr16):
     #first slice
     X_ax = 9
     Y_ax = 6
@@ -591,13 +582,58 @@ def iterate_as_matrix_viper(x:int, y:int, z:int, r:int,g:int,b:int, np_data:ptr1
 @micropython.viper
 def demo_3D_viper():
     #data = array.array('B', [0 for i in range(4*54*3)])
-    #dd = ptr8(data)
+    np.fill(0,0,0)
     mapper = ptr16(mapper_data_to_pos_copy)
     for x in range(8,-1,-1):
        for y in range(5,-1, -1):
            for z in range(3,-1, -1):
                 iterate_as_matrix_viper(x,y,z,  x*y+3, y*y*4+2, y*z*10, mapper, 0) #50us
                 np.write() #it increased time mostly 9ms at 1000 diodes
+
+@micropython.viper
+def demo_bouncing_rectangle(time_s, range):
+    mapper = ptr16(mapper_data_to_pos_copy)
+    while True:
+        r = urandom.randrange(0,range,1)
+        g = urandom.randrange(0,range,1)
+        b = urandom.randrange(0,range,1)
+        r2 = urandom.randrange(0,range,1)
+        g2 = urandom.randrange(0,range,1)
+        b2 = urandom.randrange(0,range,1)
+        for x in range(9):
+            np.fill(0,0,0)
+            for y in range(6):
+                iterate_as_matrix_viper(x, y,0, r,g,b, mapper) #6 diodes long side
+                iterate_as_matrix_viper(x, y,3,r,g,b,mapper)
+                #completely opposite rectangle inside
+                if y > 0 and y < 5:
+                    iterate_as_matrix_viper(8-x, y,1, r2,g2,b2, mapper) #6 diodes long side
+                    iterate_as_matrix_viper(8-x, y,2,r2,g2,b2,mapper)
+            for z in range(4):
+                iterate_as_matrix_viper(x,0,z,r,g,b,mapper) #4 diodes along z
+                iterate_as_matrix_viper(x, 5, z,r,g,b,mapper)
+            np.write()
+            time.sleep(time_s)
+        for x in range(8, -1, -1):
+            np.fill(0,0,0)
+            for y in range(5,-1,-1):
+                iterate_as_matrix_viper(x, y,0, r,g,b, mapper) #6 diodes long side
+                iterate_as_matrix_viper(x, y,3,r,g,b,mapper)
+                if y > 0 and y < 5:
+                    iterate_as_matrix_viper(8-x, y,1, r2,g2,b2, mapper) #6 diodes long side
+                    iterate_as_matrix_viper(8-x, y,2,r2,g2,b2,mapper)
+            for z in range(3,-1,-1):
+                iterate_as_matrix_viper(x,0,z,r,g,b,mapper) #4 diodes along z
+                iterate_as_matrix_viper(x, 5, z,r,g,b,mapper)
+            np.write()
+            time.sleep(time_s)
+
+def demo_smooth_transition(time_s, steps):
+    for i in range(0,255,steps):
+        np.viper_set_pixel(5, 255-i, 255 -i, 255-i)
+        time.sleep(time_s)
+        np.viper_set_pixel(6, i, i, i)
+        np.write()
 
 def test_3D_viper():
     with MeasureTime('default') as viper:
@@ -607,7 +643,22 @@ def test_3D_viper():
     with MeasureTime('viper') as viper:
         clear()
         demo_3D_viper()
+
+def demo_random_noise(time_s):
+    diodes_pos = []
+    for i in range(20):
+        x = urandom.randrange(0,9,1)
+        y = urandom.randrange(0,6,1)
+        z = urandom.randrange(0,4,1)
+        r = urandom.randrange(0,100,1)
+        g = urandom.randrange(0,100,1)
+        b = urandom.randrange(0,100,1)
+        iterate_as_matrix_viper(x,y,z, r,g,b,memoryview(mapper_data_to_pos_copy))
+        np.write()
+        time.sleep(time_s)
+
     
+
     
 #bytearray version
 
