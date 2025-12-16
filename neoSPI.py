@@ -15,7 +15,10 @@ import machine
 # bottom bits of each nibble all clear.
 
 # 0b00011011 -> 0b10001000 0b10001100 0b11001000 0b11001100
+zero_bytes = 1
+end_bytes = 2 # to be actual low level >50us
 
+zero_SPI_bytes = 24 #one byte equals 12 SPI bytes
 _expanded_bits = [0x88, 0x8C, 0xC8, 0xCC]
 import array
 _expanded_bits_viper = array.array("B", (0x88,0x8C, 0xC8, 0xCC))
@@ -77,10 +80,11 @@ class NeoPixel:
     
     def __init__(self, spi_device_id, pixel_count):
         self._n = pixel_count
-        self._data = memoryview(bytearray(pixel_count * 12))
+        self._data = memoryview(bytearray((pixel_count + end_bytes) * 12 + zero_SPI_bytes)) #1 just for zeroes for 1->0 before sending actual data
         self._spi = machine.SPI(spi_device_id) # will be quicker init it here
         self._spi.init(baudrate = 3200000)
-        self[:] = (0,0,0)
+        #self[:] = (0,0,0)
+        self.fill(0,0,0)
 
     def _unpack_slice(self, s):
         start, stop, step = s.start, s.stop, s.step
@@ -100,6 +104,7 @@ class NeoPixel:
     def __getitem__(self, index):
         data = self._data
         n = self._n
+        index = index + zero_bytes
         if isinstance(index, int):
             if index < -n or index >= n:
                 raise IndexError("Pixel index out of range")
@@ -195,7 +200,7 @@ class NeoPixel:
     def viper_set_pixel(self, pos: int, r: int, g: int, b: int):
         dd = ptr8(self._data)
         bits = ptr8(_expanded_bits_viper)
-        pos = pos * 12 
+        pos = pos  * 12 + int(zero_SPI_bytes) #extra byte
         _expand_byte_viper(g, dd, pos, bits)
         _expand_byte_viper(r, dd, pos+4, bits)
         _expand_byte_viper(b, dd, pos+8, bits)
@@ -208,23 +213,11 @@ class NeoPixel:
             self.viper_set_pixel(x, r,g,b)
             x = x + 1 
     
-    # @micropython.viper
-    # def fill_slice(self, start, stop, data):
-    #     #temp = memoryview(data[start*3:stop*3])
-    #     n = int(3 *(stop - start))
-    #     x= 0
-    #     while x < n:
-    #         r = temp[x]
-    #         g = temp[x+1]
-    #         b = temp[x+2]
-    #         self.viper_set_pixel(x, r, g, b)
-    #         x = x + 3 #rgb values
-
-    @micropython.viper
+    @micropython.viper #it has to be redesigned or removed
     def viper_blank(self): # naive version of filling all buffer with 0's
-        x :int = 0
+        x :int = int(zero_bytes) #because of the first blank byte
         wsk = ptr8(self._data)
-        length = int(self.n)*12
+        length = int(self.n - end_bytes - zero_bytes)*12
         while x < length:
             wsk[x] = 136 #136 in term of this SPI-WS translation
             x = x + 1
