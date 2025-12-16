@@ -12,7 +12,6 @@ FRAMES = 256
 np = neoSPI.NeoPixel(SPI_ID, NUM_LEDS)
 
 
-
 def set_pixel(i, color):
     r, g, b = color
     np[i] = (int(g * BRIGHTNESS), int(r * BRIGHTNESS), int(b * BRIGHTNESS))
@@ -385,7 +384,6 @@ def check_light_strain_mv(time_s = 0.5, additional_lights = 0):
         #print(i)
     clear()
 
-
 def iterate_as_matrix(xyz_coords, color_value, data:memoryview, blank = 0):
     #data = [(0,0,0) for _ in range(4*54)]
     X_ax = 9
@@ -558,16 +556,7 @@ class MeasureTime:
         self.time_usec = time.ticks_diff( time.ticks_us(), self.t0 )
         print(f"\tMeasureTime {self.title} {self.time_usec} usec" )
 
-mapper_data_to_pos = array.array('B', [24,25,26,27,28,29,30,31,32,42,41,40,39,38,37,36,35,34,44,45,46,47,48,49,50,51,52,62,61,60,59,58,57,56,55,54,64,65,66,67,68,69,70,71,72,82,81,80,79,78,77,76,75,74,
-                                      94,93,92,91,90,89,88,87,86,96,97,98,99,100,101,102,103,104,114,113,112,111,110,109,108,107,106,116,117,118,119,120,121,122,123,124,134,133,132,131,130,129,128,127,126,136,137,138,139,140,141,142,143,144,
-                                      148,149,150,151,152,153,154,155,156,166,165,164,163,162,161,160,159,158,168,169,170,171,172,173,174,175,176,186,185,184,183,182,181,180,179,178,188,189,190,191,192,193,194,195,196,206,205,204,203,202,201,200,199,198,
-                                      217,216,215,214,213,212,211,210,209,219,220,221,222,223,224,225,226,227,237,236,235,234,233,232,231,230,229,239,240,241,242,243,244,245,246,247,257,256,255,254,253,252,251,250,249,259,260,261,262,263,264,265, 266, 267])
-
-mapper_data_to_pos_copy = array.array('h', [24,25,26,27,28,29,30,31,32,42,41,40,39,38,37,36,35,34,44,45,46,47,48,49,50,51,52,62,61,60,59,58,57,56,55,54,64,65,66,67,68,69,70,71,72,82,81,80,79,78,77,76,75,74,
-                                      144, 143, 142, 141, 140, 139, 138, 137, 136, 126, 127, 128, 129, 130, 131, 132, 133, 134, 124, 123, 122, 121, 120, 119, 118, 117, 116, 106, 107, 108, 109, 110, 111, 112, 113, 114, 104, 103, 102, 101, 100, 99, 98, 97, 96, 86, 87, 88, 89, 90, 91, 92, 93, 94,
-                                      148,149,150,151,152,153,154,155,156,166,165,164,163,162,161,160,159,158,168,169,170,171,172,173,174,175,176,186,185,184,183,182,181,180,179,178,188,189,190,191,192,193,194,195,196,206,205,204,203,202,201,200,199,198,
-                                      267, 266, 265, 264, 263, 262, 261, 260, 259, 249, 250, 251, 252, 253, 254, 255, 256, 257, 247, 246, 245, 244, 243, 242, 241, 240, 239, 229, 230, 231, 232, 233, 234, 235, 236, 237, 227, 226, 225, 224, 223, 222, 221, 220, 219, 209, 210, 211, 212, 213, 214, 215, 216, 217])
-
+mapper_data_to_pos = array.array('h', [25, 26, 27, 28, 29, 30, 31, 32, 33, 43, 42, 41, 40, 39, 38, 37, 36, 35, 45, 46, 47, 48, 49, 50, 51, 52, 53, 63, 62, 61, 60, 59, 58, 57, 56, 55, 65, 66, 67, 68, 69, 70, 71, 72, 73, 83, 82, 81, 80, 79, 78, 77, 76, 75, 145, 144, 143, 142, 141, 140, 139, 138, 137, 127, 128, 129, 130, 131, 132, 133, 134, 135, 125, 124, 123, 122, 121, 120, 119, 118, 117, 107, 108, 109, 110, 111, 112, 113, 114, 115, 105, 104, 103, 102, 101, 100, 99, 98, 97, 87, 88, 89, 90, 91, 92, 93, 94, 95, 149, 150, 151, 152, 153, 154, 155, 156, 157, 167, 166, 165, 164, 163, 162, 161, 160, 159, 169, 170, 171, 172, 173, 174, 175, 176, 177, 187, 186, 185, 184, 183, 182, 181, 180, 179, 189, 190, 191, 192, 193, 194, 195, 196, 197, 207, 206, 205, 204, 203, 202, 201, 200, 199, 268, 267, 266, 265, 264, 263, 262, 261, 260, 250, 251, 252, 253, 254, 255, 256, 257, 258, 248, 247, 246, 245, 244, 243, 242, 241, 240, 230, 231, 232, 233, 234, 235, 236, 237, 238, 228, 227, 226, 225, 224, 223, 222, 221, 220, 210, 211, 212, 213, 214, 215, 216, 217, 218])
 @micropython.viper
 def iterate_as_matrix_viper(x:int, y:int, z:int, r:int,g:int,b:int, np_data:ptr16):
     #first slice
@@ -583,16 +572,16 @@ def iterate_as_matrix_viper(x:int, y:int, z:int, r:int,g:int,b:int, np_data:ptr1
 def demo_3D_viper():
     #data = array.array('B', [0 for i in range(4*54*3)])
     np.fill(0,0,0)
-    mapper = ptr16(mapper_data_to_pos_copy)
+    mapper = ptr16(mapper_data_to_pos)
     for x in range(8,-1,-1):
        for y in range(5,-1, -1):
            for z in range(3,-1, -1):
-                iterate_as_matrix_viper(x,y,z,  x*y+3, y*y*4+2, y*z*10, mapper, 0) #50us
+                iterate_as_matrix_viper(x,y,z,  x*y+3, y*y*4+2, y*z*10, mapper) #50us
                 np.write() #it increased time mostly 9ms at 1000 diodes
 
 @micropython.viper
 def demo_bouncing_rectangle(time_s, range):
-    mapper = ptr16(mapper_data_to_pos_copy)
+    mapper = ptr16(mapper_data_to_pos)
     while True:
         r = urandom.randrange(0,range,1)
         g = urandom.randrange(0,range,1)
@@ -608,7 +597,7 @@ def demo_bouncing_rectangle(time_s, range):
                 #completely opposite rectangle inside
                 if y > 0 and y < 5:
                     iterate_as_matrix_viper(8-x, y,1, r2,g2,b2, mapper) #6 diodes long side
-                    iterate_as_matrix_viper(8-x, y,2,r2,g2,b2,mapper)
+                    iterate_as_matrix_viper(8-x, y,2,r2,g2,b2,mapper)    
             for z in range(4):
                 iterate_as_matrix_viper(x,0,z,r,g,b,mapper) #4 diodes along z
                 iterate_as_matrix_viper(x, 5, z,r,g,b,mapper)
@@ -628,12 +617,19 @@ def demo_bouncing_rectangle(time_s, range):
             np.write()
             time.sleep(time_s)
 
-def demo_smooth_transition(time_s, steps):
-    for i in range(0,255,steps):
-        np.viper_set_pixel(5, 255-i, 255 -i, 255-i)
-        time.sleep(time_s)
-        np.viper_set_pixel(6, i, i, i)
-        np.write()
+def demo_smooth_transition(x,y,z, time_s, steps):
+    mapper = memoryview(mapper_data_to_pos)
+    for i in range(0,100,steps):
+        for x in range(9):
+            for y in range(6):
+                iterate_as_matrix_viper(x,y,0, gamma(100-i), gamma(100 -i), gamma(100-i),mapper)
+                iterate_as_matrix_viper(x+1,y,0, gamma(i), gamma(i), gamma(i),mapper)
+                iterate_as_matrix_viper(x,y,3, gamma(100-i), gamma(100 -i), gamma(100-i),mapper)
+                iterate_as_matrix_viper(x+1,y,3, gamma(i), gamma(i), gamma(i),mapper)
+                time.sleep(0.001)
+            np.write()
+            time.sleep(time_s)
+            np.fill(0,0,0)
 
 def test_3D_viper():
     with MeasureTime('default') as viper:
@@ -653,13 +649,63 @@ def demo_random_noise(time_s):
         r = urandom.randrange(0,100,1)
         g = urandom.randrange(0,100,1)
         b = urandom.randrange(0,100,1)
-        iterate_as_matrix_viper(x,y,z, r,g,b,memoryview(mapper_data_to_pos_copy))
+        iterate_as_matrix_viper(x,y,z, r,g,b,memoryview(mapper_data_to_pos))
         np.write()
         time.sleep(time_s)
 
-    
+def demo_simple_fading(step, r,g,b):
+    gamma = 2.2
+    for i in range(0,50,step):
+        r = int((i/255)**gamma * 255)
+        g=int((i/255)**gamma * 255)
+        b=int((i/255)**gamma * 255)
+        fill_cube(r,g,b)
+        np.write()
+    for i in range(50,-1,-step):
+        r = int((i/255)**gamma * 255)
+        g=int((i/255)**gamma * 255)
+        b=int((i/255)**gamma * 255)
+        fill_cube(r,g,b)
+        np.write()
 
-    
-#bytearray version
+def gamma(value, gamma=2.2):
+    return int((value / 255) ** gamma * 255)
+
+
+def fill_cube(r,g,b):
+    np.fill(0,0,0)
+    mapper = memoryview(mapper_data_to_pos)
+    for x in range(8,-1,-1):
+       for y in range(5,-1, -1):
+           for z in range(3,-1, -1):
+                iterate_as_matrix_viper(x,y,z, r, g, b, mapper) #50us
+
+
+def demo_bouncing_rectangle_smooth(time_s, range):
+    mapper = memoryview(mapper_data_to_pos)
+    while True:
+        np.fill(0,0,0)
+        r = urandom.randrange(0,range,1)
+        g = urandom.randrange(0,range,1)
+        b = urandom.randrange(0,range,1)
+        r2 = urandom.randrange(0,range,1)
+        g2 = urandom.randrange(0,range,1)
+        b2 = urandom.randrange(0,range,1)
+        for x in range(9):
+            for y in range(6):
+                demo_smooth_transition(x,y,0,0.001,20)
+                demo_smooth_transition(x,y,3,0.001,20)    
+            np.write()
+            time.sleep(time_s)
+        for x in range(8, -1, -1):
+            np.fill(0,0,0)
+            for y in range(5,-1,-1):
+                iterate_as_matrix_viper(x, y,0, r//4,g//4,b//4, mapper) #6 diodes long side
+                iterate_as_matrix_viper(x, y,3,r//4,g//4,b//4,mapper)
+                iterate_as_matrix_viper(x-1, y,0, r,g,b, mapper) #6 diodes long side
+                iterate_as_matrix_viper(x-1, y,3,r,g,b,mapper)
+            np.write()
+            time.sleep(time_s)
+
 
 #iterate_as_matrix_viper(0,0,0,1,1,1,memoryview(data), memoryview(mapper_data_to_pos),0) it is allowed to pass memoryview as ptr8
