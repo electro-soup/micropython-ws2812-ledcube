@@ -619,17 +619,16 @@ def demo_bouncing_rectangle(time_s, range):
 
 def demo_smooth_transition(x,y,z, time_s, steps):
     mapper = memoryview(mapper_data_to_pos)
-    for i in range(0,100,steps):
-        for x in range(9):
-            for y in range(6):
-                iterate_as_matrix_viper(x,y,0, gamma(100-i), gamma(100 -i), gamma(100-i),mapper)
-                iterate_as_matrix_viper(x+1,y,0, gamma(i), gamma(i), gamma(i),mapper)
-                iterate_as_matrix_viper(x,y,3, gamma(100-i), gamma(100 -i), gamma(100-i),mapper)
-                iterate_as_matrix_viper(x+1,y,3, gamma(i), gamma(i), gamma(i),mapper)
-                time.sleep(0.001)
-            np.write()
+    for x in range(9):
+            for i in range(0,100,steps):
+                    for y in range(6):
+                        iterate_as_matrix_viper(x,y,0, gamma(100-i), gamma(100 -i), gamma(100-i),mapper)
+                        iterate_as_matrix_viper(x+1,y,0, gamma(i), gamma(i), gamma(i),mapper)
+                        iterate_as_matrix_viper(x,y,3, gamma(100-i), gamma(100 -i), gamma(100-i),mapper)
+                        iterate_as_matrix_viper(x+1,y,3, gamma(i), gamma(i), gamma(i),mapper)
+                        np.write()
             time.sleep(time_s)
-            np.fill(0,0,0)
+    np.fill(0,0,0)
 
 def test_3D_viper():
     with MeasureTime('default') as viper:
@@ -693,8 +692,8 @@ def demo_bouncing_rectangle_smooth(time_s, range):
         b2 = urandom.randrange(0,range,1)
         for x in range(9):
             for y in range(6):
-                demo_smooth_transition(x,y,0,0.001,20)
-                demo_smooth_transition(x,y,3,0.001,20)    
+                demo_smooth_transition(x,y,0,0.000001,4)
+                demo_smooth_transition(x,y,3,0.000001,4)    
             np.write()
             time.sleep(time_s)
         for x in range(8, -1, -1):
