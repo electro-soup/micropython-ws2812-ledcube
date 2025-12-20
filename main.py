@@ -12,54 +12,7 @@ FRAMES = 256
 np = neoSPI.NeoPixel(SPI_ID, NUM_LEDS)
 
 
-def set_pixel(i, color):
-    r, g, b = color
-    np[i] = (int(g * BRIGHTNESS), int(r * BRIGHTNESS), int(b * BRIGHTNESS))
 
-def wheel(pos):
-    """Zwraca kolor tęczy od 0-255"""
-    if pos < 85:
-        return (255 - pos * 3, pos * 3, 0)
-    elif pos < 170:
-        pos -= 85
-        return (0, 255 - pos * 3, pos * 3)
-    else:
-        pos -= 170
-        return (pos * 3, 0, 255 - pos * 3)
-
-def rainbow_cycle(wait=0.02, loops=2):
-    for j in range(256 * loops):
-        for i in range(NUM_LEDS):
-            rc_index = (i * 256 // NUM_LEDS + j) & 255
-            set_pixel(i, wheel(rc_index))
-        np.write()
-        time.sleep(wait)
-
-def theater_chase(color, wait=0.05, cycles=20):
-    for j in range(cycles):
-        for q in range(3):
-            for i in range(0, NUM_LEDS, 3):
-                set_pixel((i + q) % NUM_LEDS, color)
-            np.write()
-            time.sleep(wait)
-            for i in range(0, NUM_LEDS, 3):
-                set_pixel((i + q) % NUM_LEDS, (0, 0, 0))
-
-def breathing(color, duration=3, steps=100):
-    for i in range(steps):
-        level = (math.sin(i / steps * math.pi) ** 2)
-        for j in range(NUM_LEDS):
-            set_pixel(j, tuple(int(c * level) for c in color))
-        np.write()
-        time.sleep(duration / steps)
-
-def running_light(color, wait=0.05):
-    for i in range(NUM_LEDS * 2):
-        for j in range(NUM_LEDS):
-            brightness = max(0, math.sin((i - j) / 2))
-            set_pixel(j, tuple(int(c * brightness) for c in color))
-        np.write()
-        time.sleep(wait)
 
 def sparkle(duration=3, wait=0.05):
     end_time = time.ticks_add(time.ticks_ms(), int(duration * 1000))
@@ -88,28 +41,11 @@ def demo():
         sparkle()
         clear()
 
-# --- funkcje pomocnicze ---
-def scale_color(color):
-    r, g, b = color
-    return (int(r * BRIGHTNESS), int(g * BRIGHTNESS), int(b * BRIGHTNESS))
-
-def wheel(pos):
-    """Zwraca kolor tęczy od 0-255"""
-    if pos < 85:
-        return (255 - pos * 3, pos * 3, 0)
-    elif pos < 170:
-        pos -= 85
-        return (0, 255 - pos * 3, pos * 3)
-    else:
-        pos -= 170
-        return (pos * 3, 0, 255 - pos * 3)
-
 
 def random_color():
     return (urandom.randrange(0,10,1), urandom.randrange(0,10,1),urandom.randrange(0,10,1))
 
 def snake(color, num_pixels, time_s):
-    np = neopixel.NeoPixel(Pin(LED_PIN), num_pixels)
     for i in range(num_pixels - 20): #time consuming, needs opts if largers arrays
         np.fill((0,0,0))   
         np[i]=color
@@ -124,8 +60,6 @@ def snake(color, num_pixels, time_s):
         np.write()
         time.sleep(time_s)
 
-
-        
 def snake_SPI(color, num_pixels, time_s):
     _data_len =  np.n*12
     for i in range(num_pixels - 20): #time consuming, needs opts if largers arrays
@@ -154,44 +88,7 @@ def snake_SPI(color, num_pixels, time_s):
         print(f"MeasureTime {time_msec} msec")
         time.sleep(time_s)
         
-        
-def wave_horizont_1(time_s, colour):
-    for i in range(12):
-           clear()
-           color = random_color()
-           for y in range(42 +i*14, 42+14 +i*14,1):
-               np[y] = color
-           np.write()
-           time.sleep(time_s)
-    #return to monke
 
-def wave_horizont_2(time_s, colour):
-    for i in range(11, -1, -1):
-           clear()
-           color = random_color()
-           for y in range(42 +i*14, 42+14 +i*14,1):
-               np[y] = color
-           np.write()
-           time.sleep(time_s)
-           
-def wave_vertical(time_s, colour, n_leds):
-    for i in range(n_leds):
-           clear()
-           color = random_color()
-           for y in range(11, -1, -1):
-               np[y*14+i] = color
-           np.write()
-           time.sleep(time_s)
-           
-def sparkle_v2(duration=3, wait=0.05):
-    end_time = time.ticks_add(time.ticks_ms(), int(duration * 1000))
-    while time.ticks_diff(end_time, time.ticks_ms()) > 0:
-        i = urandom.randint(42, 42+14*12)
-        np[i] = (100, 100, 100)
-        np.write()
-        time.sleep(wait)
-        clear()
-        
 def snakes_split(time_s, snake_length):
     color_1 = (0,5,5)
     color_2 = (5,5,0)
@@ -211,147 +108,6 @@ def snakes_split(time_s, snake_length):
         time.sleep(time_s)
         np.viper_blank()
      
-
-
-#6x9x4 demo cube
-OFFSET = 24
-
-
-
-#very naive function for filling 9x6x4 matrix
-def write_3D_data(data):
-    start = 24
-    end = 0
-    line_width = 9
-    #  first strand transformation - 6 rows (or vertical columns)
-    data_temp = data[0:54]
-    for i in range(0,6,2):
-        end = start+line_width
-        #print(i*line_width,(i+1)*line_width)
-        np[start:end] = data_temp[i*line_width:(i+1)*line_width]
-        #now reverse order
-        start = end + 1 # 1 for empty led
-        end = start + line_width
-        temp = data_temp[(line_width)*(i+1):(2+i)*line_width]
-        #print((line_width)*(i+1),(2+i)*line_width)
-        np[start:end] = temp[::-1]
-        start = end + 1
-    start = end + 3
-    #reverse part of array for second 2d slice:
-    data_temp = data[54:108]
-    data_temp = data_temp[::-1]
-    for i in range(0,6,2):
-        end = start+line_width
-        temp = data_temp[i*line_width:(i+1)*line_width]
-        np[start:end]= temp[::-1]
-        #now reverse order
-        start = end + 1 # 1 for empty led
-        end = start + line_width
-        np[start:end]= data_temp[(line_width)*(i+1):(2+i)*line_width]
-        start = end + 1
-        #third slice
-    start = end + 3
-    data_temp = data[108:162] 
-    for i in range(0,6,2):
-        end = start+line_width
-        np[start:end] = data_temp[i*line_width:(i+1)*line_width]
-        #now reverse order
-        start = end + 1 # 1 for empty led
-        end = start + line_width
-        temp = data_temp[(line_width)*(i+1):(2+i)*line_width]
-        np[start:end] = temp[::-1]
-        start = end + 1
-    start = end + 2
-    #and the same as #2
-    data_temp = data[162:216]
-    data_temp = data_temp[::-1]
-    for i in range(0,6,2):
-        end = start+line_width
-        temp = data_temp[i*line_width:(i+1)*line_width]
-        np[start:end] = temp[::-1]
-        #now reverse order
-        start = end + 1 # 1 for empty led
-        end = start + line_width
-        temp = data_temp[(line_width)*(i+1):(2+i)*line_width]
-        #print(len(data_temp), len(temp), start, end)
-        np[start:end] = temp
-        start = end + 1
-
-
-
-
-
-color_table = []
-color_table[0:54] = [ (i,0,0) for i in range(54)]
-color_table[54:(54+54)] = [ (i,i,0) for i in range(54)]
-color_table[108:(108+54)] = [ (0,i,0) for i in range(54)]
-color_table[164:(164+54)] = [ (0,0,i) for i in range(54)]
-
-    #and back to normal
-def wall_down(color, time_s, blank = 1):
-    for i in range(9):
-        if i == 0:
-            color_table = [(0,0,0) for _ in range(4*54)]
-        if blank:
-            color_table = [(0,0,0) for _ in range(4*54)]
-        for y in range(i, len(color_table), 9):
-            color_table[y] = color
-        if blank:     
-            np.viper_blank()
-        write_3D_data(color_table)
-        np.write()
-        time.sleep(time_s)
-
-def wall_back_to_front(color = (0, 4,0), time_s = 0.1, blank = 1):
-    for i in range(0, 216,54):
-        if i == 0:
-            color_table = [(0,0,0) for _ in range(4*54)]
-        if blank:
-            color_table = [(0,0,0) for _ in range(4*54)]
-        color_table[i:(i+54)] = [ color for _ in range(54)]
-        if blank:
-            np.viper_blank()
-        write_3D_data(color_table)
-        np.write()
-        time.sleep(time_s)
-
-
-def cascade_wall():
-    wall_down((0,4,4), 0.5,0)
-    wall_down((4,0,4), 0.3,0)
-    wall_down((2,4,3), 0.2,0)
-    wall_down((0,0,3), 0.1)
-    wall_down((3,0,0), 0.001)
-    wall_down((0,1,2), 0.001)
-    wall_down((2,1,0), 0.001)
-    wall_down((1,1,1), 0.001)
-    wall_back_to_front((0,4,4), 0.5)
-    wall_back_to_front((4,0,4), 0.3)
-    wall_back_to_front((2,4,3), 0.2)
-    wall_back_to_front((0,0,3), 0.1)
-    wall_back_to_front((3,0,0), 0.001)
-    wall_back_to_front((0,1,2), 0.001)
-    wall_back_to_front((2,1,0), 0.001)
-    wall_back_to_front((1,1,1), 0.001)
-    clear()
-
-def wall_side_to_side(color=(0,0,3), time_s = 0.1, blank = 1):
-    for x in range(6):
-        if x == 0:
-            color_table = [(0,0,0) for _ in range(4*54)]
-        if blank:
-            color_table = [(0,0,0) for _ in range(4*54)]
-        for y in range(4):
-            start = (x*9)+y*54
-            end = (x+1)*9+y*54
-            print(start, end)
-            color_table[start:end] = [color for _ in range(9)]
-        if blank:
-            np.viper_blank()
-        write_3D_data(color_table)
-        np.write()
-        time.sleep(time_s)
-
 @micropython.viper
 def check_light_strain(time_s = 0.5, additional_lights = 0):
     color_1 = random_color()
@@ -441,25 +197,6 @@ def demo_3D_mv():
     #         write_3D_data_mv(dd)
     #         np.write()
         
-
-def last_demo():
-    #while True:
-        color = random_color()
-        wall_down(color, 0.05,0)
-        color = random_color()
-        wall_side_to_side(color, 0.05,0)
-        color = random_color()
-        wall_back_to_front(color, 0.05,0)
-        color = random_color()
-        wall_down(color, 0.05,1)
-        color = random_color()
-        wall_side_to_side(color, 0.05,1)
-        color = random_color()
-        wall_back_to_front(color, 0.05,1)
-        color = random_color()
-        demo_3D()
-        clear()
-
 
 def demo_viper_fill():
     while True:
@@ -706,5 +443,191 @@ def demo_bouncing_rectangle_smooth(time_s, range):
             np.write()
             time.sleep(time_s)
 
+@micropython.viper
+def write_buffer_to_strain(data_, mapper_):
+    data = ptr8(data_)
+    mapper = ptr16(mapper_)
+    for z in range(4):
+        for y in range(6):
+            for x in range(9):
+                pos = x + y * 9 + z * 9 * 6  # it is good
+                pos = 3 * pos
+                iterate_as_matrix_viper(x,y,z, data[pos], data[pos+1], data[pos+2], mapper)
+    np.write()
+
+
+data = array.array('B', [0] * (NUM_LEDS * 3))
+def draw_sphere(cx, cy, cz, radius, brightness,data):
+    for z in range(DEPTH):
+        for y in range(HEIGHT):
+            for x in range(WIDTH):
+                # Obliczanie dystansu euklidesowego od środka kuli
+                dist = math.sqrt((x - cx)**2 + (y - cy)**2 + (z - cz)**2)
+                
+                if dist <= radius:
+                    # Obliczamy indeks w tablicy
+                    idx = (z * WIDTH * HEIGHT + y * WIDTH + x) * 3
+                    # Ustawiamy kolor czerwony (Format GRB: Green=0, Red=brightness, Blue=0)
+                    data[idx] = brightness          # G
+                    data[idx + 1] = 0 # R
+                    data[idx + 2] = 0      # B
+
 
 #iterate_as_matrix_viper(0,0,0,1,1,1,memoryview(data), memoryview(mapper_data_to_pos),0) it is allowed to pass memoryview as ptr8
+def sphere_demo(time_s, duration):
+    start_t = time.ticks_ms()
+    while (time.ticks_ms()-start_t)/1000 < duration:
+        cx = urandom.randrange(0,9,1)
+        cy = urandom.randrange(0,6,1)
+        cz = urandom.randrange(0,4,1)
+        for i in range(1,4):
+            data = array.array('B', [0] * (NUM_LEDS * 3))
+            draw_color_radius_sphere(cx,cy,cz,i,0.5,data)
+            write_buffer_to_strain(data,mapper_data_to_pos)
+            time.sleep(time_s)
+        for i in range(3, 0,-1):
+            data = array.array('B', [0] * (NUM_LEDS * 3))
+            draw_color_radius_sphere(cx,cy,cz,i,0.5,data)
+            write_buffer_to_strain(data,mapper_data_to_pos)
+            time.sleep(time_s)
+
+
+def draw_soft_sphere(cx, cy, cz, radius, brightness, feather,data):
+    """
+    cx, cy, cz - środek kuli (float)
+    radius - promień kuli
+    brightness - maksymalna jasność (0-255)
+    feather - szerokość pasma rozmycia krawędzi (w jednostkach/diodach)
+    """
+    for z in range(DEPTH):
+        for y in range(HEIGHT):
+            for x in range(WIDTH):
+                # Obliczamy dystans euklidesowy
+                dist = math.sqrt((x - cx)**2 + (y - cy)**2 + (z - cz)**2)
+                if dist < radius + feather:
+                    # Obliczanie współczynnika jasności (linear falloff)
+                    if dist <= radius - feather:
+                        factor = 1.0
+                    else:
+                        # Płynne przejście od 1.0 do 0.0
+                        factor = (radius + feather - dist) / (2 * feather)
+                        factor = max(0, min(1, factor))
+                    # Zastosowanie jasności
+                    val = int(brightness * factor)
+                    # Indeks w buforze
+                    idx = (z * WIDTH * HEIGHT + y * WIDTH + x) * 3
+                    # Format GRB
+                    data[idx]     = 0       # G
+                    data[idx + 1] = gamma(val)     # R (Czerwony)
+                    data[idx + 2] = 0       # B
+
+# Wywołanie: kula z miękkim przejściem i jasnym jądrem
+def draw_gradient_sphere(cx, cy, cz, radius, brightness, feather,buffer):
+    for z in range(DEPTH):
+        for y in range(HEIGHT):
+            for x in range(WIDTH):
+                dist = math.sqrt((x - cx)**2 + (y - cy)**2 + (z - cz)**2)
+                if dist < radius + feather:
+                    # 1. Obliczamy ogólną intensywność (wygaszanie na krawędziach)
+                    if dist <= radius - feather:
+                        intensity = 1.0
+                    else:
+                        intensity = (radius + feather - dist) / (2 * feather)
+                        intensity = max(0, min(1, intensity))
+                    # 2. Obliczamy "białość" (tylko w samym centrum kuli)
+                    # core_ratio będzie 1.0 w centrum i spadnie do 0.0 szybko
+                    core_ratio = max(0, 1 - (dist / (radius * 0.7))) 
+                    # Kolory:
+                    # Czerwony jest zawsze mocny (zależny od intensity)
+                    r = int(brightness * intensity)
+                    # Zielony i Niebieski pojawiają się tylko w środku (tworząc biały)
+                    gb = int(brightness * intensity * core_ratio * 0.8)
+                    idx = (z * WIDTH * HEIGHT + y * WIDTH + x) * 3
+                    # Format GRB
+                    buffer[idx]     = gamma(gb)  # G
+                    buffer[idx + 1] = gamma(r)   # R
+                    buffer[idx + 2] = gamma(gb)  # B
+
+def hsv_to_rgb(h, s, v):
+    """Konwertuje kolory HSV (0-360, 0-1, 0-1) na RGB (0-255)"""
+    if s == 0.0: return v, v, v
+    i = int(h / 60.0)
+    f = (h / 60.0) - i
+    p = v * (1.0 - s)
+    q = v * (1.0 - s * f)
+    t = v * (1.0 - s * (1.0 - f))
+    v, p, q, t = int(v * 255), int(p * 255), int(q * 255), int(t * 255)
+    i %= 6
+    if i == 0: return v, t, p
+    if i == 1: return q, v, p
+    if i == 2: return p, v, t
+    if i == 3: return p, q, v
+    if i == 4: return t, p, v
+    if i == 5: return v, p, q
+
+def draw_color_radius_sphere(cx, cy, cz, radius, brightness=1.0, buffer = data):
+    for z in range(DEPTH):
+        for y in range(HEIGHT):
+            for x in range(WIDTH):
+                dist = math.sqrt((x - cx)**2 + (y - cy)**2 + (z - cz)**2)
+                if dist < radius:
+                    # n_dist: 0.0 w środku, 1.0 na krawędzi
+                    n_dist = dist / radius
+                    # --- MAPOWANIE KOLORU ---
+                    # Hue: 30 (pomarańczowy) w środku -> 0 (czerwony) na zewnątrz
+                    hue = 180 + (n_dist * 60)
+                    # Saturation: zawsze 1.0 dla soczystych kolorów
+                    sat = 1.0 
+                    # Value (Jasność): mocny spadek przy krawędzi dla efektu głębi
+                    val = brightness * (1.0 - n_dist**2)
+                    r, g, b = hsv_to_rgb(hue, sat, val)
+                    idx = (z * WIDTH * HEIGHT + y * WIDTH + x) * 3
+                    # Format GRB dla WS2812
+                    buffer[idx]     = gamma(g)
+                    buffer[idx + 1] = gamma(r)
+                    buffer[idx + 2] = gamma(b)
+
+import array
+import math
+import time
+
+WIDTH = 9
+HEIGHT = 6
+DEPTH = 4
+NUM_LEDS = WIDTH * HEIGHT * DEPTH
+buffer = array.array('B', [0] * (NUM_LEDS * 3))
+
+def update_plasma_sphere(t, cx=4.0, cy=2.5, cz=1.5, radius=3.5, use_gamma=False):
+    for i in range(len(buffer)): buffer[i] = 0
+    for z in range(DEPTH):
+        for y in range(HEIGHT):
+            for x in range(WIDTH):
+                dist = math.sqrt((x - cx)**2 + (y - cy)**2 + (z - cz)**2)
+                if dist < radius:
+                    # n_dist: 0.0 (środek) do 1.0 (krawędź)
+                    n_dist = dist / radius
+                    # --- EFEKT PRZEPŁYWU ---
+                    # t steruje przesunięciem fazy. 
+                    # Mnożnik przy n_dist (np. 2.0) określa ile cykli koloru mieści się w kuli.
+                    # Mnożnik przy t określa prędkość.
+                    hue = (n_dist * 120 - t * 150) % 360
+                    # Jasność zanika przy krawędziach promienia (feathering)
+                    val = 0.8 * (1.0 - n_dist**2)
+                    r, g, b = hsv_to_rgb(hue, 1.0, val)
+                    idx = (z * WIDTH * HEIGHT + y * WIDTH + x) * 3
+                    buffer[idx]     = gamma(g) if use_gamma else g
+                    buffer[idx + 1] = gamma(r) if use_gamma else r
+                    buffer[idx + 2] = gamma(b) if use_gamma else b
+
+def pulsating_gradient(gamma, duration = 1):
+    t_start = time.ticks_ms()
+    while (time.ticks_ms()-t_start)/1000 < duration:
+        elapsed = time.ticks_diff(time.ticks_ms(), t_start) / 1000.0
+        update_plasma_sphere(elapsed,use_gamma =gamma)
+        write_buffer_to_strain(buffer,mapper_data_to_pos)
+        time.sleep(0.02) # ok. 50 FPS
+
+def ultimate_demo():
+    sphere_demo(0.061, 5)
+    pulsating_gradient(True,10)
+    clear()
