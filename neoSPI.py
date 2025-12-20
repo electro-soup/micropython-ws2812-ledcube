@@ -15,7 +15,7 @@ import machine
 # bottom bits of each nibble all clear.
 
 # 0b00011011 -> 0b10001000 0b10001100 0b11001000 0b11001100
-zero_bytes = 1
+zero_bytes = 2
 end_bytes = 2 # to be actual low level >50us
 
 zero_SPI_bytes = 24 #one byte equals 12 SPI bytes
@@ -80,7 +80,7 @@ class NeoPixel:
     
     def __init__(self, spi_device_id, pixel_count):
         self._n = pixel_count
-        self._data = memoryview(bytearray((pixel_count + end_bytes) * 12 + zero_SPI_bytes)) #1 just for zeroes for 1->0 before sending actual data
+        self._data = memoryview(bytearray((pixel_count + end_bytes + zero_bytes) * 12)) #1 just for zeroes for 1->0 before sending actual data
         self._spi = machine.SPI(spi_device_id) # will be quicker init it here
         self._spi.init(baudrate = 3200000)
         #self[:] = (0,0,0)
@@ -200,7 +200,7 @@ class NeoPixel:
     def viper_set_pixel(self, pos: int, r: int, g: int, b: int):
         dd = ptr8(self._data)
         bits = ptr8(_expanded_bits_viper)
-        pos = pos  * 12 + int(zero_SPI_bytes) #extra byte
+        pos = (pos + int(zero_bytes)) * 12 #extra byte
         _expand_byte_viper(g, dd, pos, bits)
         _expand_byte_viper(r, dd, pos+4, bits)
         _expand_byte_viper(b, dd, pos+8, bits)
@@ -215,7 +215,7 @@ class NeoPixel:
     
     @micropython.viper #it has to be redesigned or removed
     def viper_blank(self): # naive version of filling all buffer with 0's
-        x :int = int(zero_bytes) #because of the first blank byte
+        x :int = int(zero_SPI_bytes) #because of the first blank byte
         wsk = ptr8(self._data)
         length = int(self.n - end_bytes - zero_bytes)*12
         while x < length:
